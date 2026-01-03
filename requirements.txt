@@ -1,6 +1,17 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-httpx==0.25.1
-python-dotenv==1.0.0
-pydantic==2.5.1
-email-validator==2.1.0.post1
+# FastAPI & Server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-dotenv>=1.0.0
+httpx>=0.26.0
+
+# Database - PostgreSQL
+sqlalchemy[asyncio]>=2.0.25
+asyncpg>=0.29.0        # Async PostgreSQL driver
+psycopg2-binary>=2.9.9 # Sync driver (for migrations)
+pgvector>=0.2.4        # Vector similarity search
+
+# Pydantic
+pydantic>=2.5.0
+
+# Utilities
+python-multipart>=0.0.6  # For file uploads (future)

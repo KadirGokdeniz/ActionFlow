@@ -1,0 +1,39 @@
+services:
+  # Veritabanı Servisi
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: actionflow-db
+    restart: always
+    environment:
+      POSTGRES_USER: actionflow
+      POSTGRES_PASSWORD: dev123
+      POSTGRES_DB: actionflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - actionflow-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U actionflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Uygulama Servisi
+  api:
+    build: .
+    container_name: actionflow-api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://actionflow:dev123@db:5432/actionflow
+      - AMADEUS_API_KEY=${AMADEUS_API_KEY}
+      - AMADEUS_API_SECRET=${AMADEUS_API_SECRET}
+      - AMADEUS_HOSTNAME=test
+    depends_on:
+      db:
+        condition: service_healthy
+
+# Hata buradaydı: Hacmi (Volume) global olarak tanımlamalıyız
+volumes:
+  actionflow-pgdata:
