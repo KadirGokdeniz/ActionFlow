@@ -32,28 +32,28 @@ One message. Multiple actions. No waiting.
 Traveler: "Yarınki Amsterdam otelimi iptal etmem lazım, uçuş değişti"
 
 ActionFlow:
-├─ Supervisor       → Intent: cancellation | Urgency: high (tomorrow)
-├─ Info Agent       → Retrieves cancellation policy → Free cancellation eligible
-├─ Action Agent     → Triggers n8n workflow:
-│   ├─ Booking API  → Cancel reservation
-│   ├─ Payment      → Initiate €142 refund
-│   └─ Email        → Send confirmation
-└─ Response         → "Rezervasyonunuz iptal edildi. €142 iade 3-5 iş günü 
-                       içinde kartınıza yansıyacak. Yeni otel önerisi ister misiniz?"
+├─ Supervisor       → Intent: cancellation | Urgency: high (tomorrow)
+├─ Info Agent       → Retrieves cancellation policy → Free cancellation eligible
+├─ Action Agent     → Triggers n8n workflow:
+│   ├─ Booking API  → Cancel reservation
+│   ├─ Payment      → Initiate €142 refund
+│   └─ Email        → Send confirmation
+└─ Response         → "Rezervasyonunuz iptal edildi. €142 iade 3-5 iş günü 
+                       içinde kartınıza yansıyacak. Yeni otel önerisi ister misiniz?"
 
 Total time: <3 seconds
 ```
 
 ```
-Traveler (voice, at airport): "I need a hotel near Schiphol for tonight, 
-                               under 150 euros, with free cancellation"
+Traveler (voice, at airport): "I need a hotel near Schiphol for tonight, 
+                               under 150 euros, with free cancellation"
 
 ActionFlow:
-├─ Supervisor       → Intent: booking | Constraints: location, price, policy
-├─ Action Agent     → Search API → 3 matching hotels
-├─ Info Agent       → User history → Prefers 4-star, quiet rooms
-└─ Response (TTS)   → "I found 3 options. Best match: Hilton Garden Inn, 
-                       €129, 8-minute walk to terminal. Book it?"
+├─ Supervisor       → Intent: booking | Constraints: location, price, policy
+├─ Action Agent     → Search API → 3 matching hotels
+├─ Info Agent       → User history → Prefers 4-star, quiet rooms
+└─ Response (TTS)   → "I found 3 options. Best match: Hilton Garden Inn, 
+                       €129, 8-minute walk to terminal. Book it?"
 ```
 
 ## System Architecture
@@ -62,23 +62,23 @@ Supervisor agent routes based on intent and urgency. Specialized agents handle i
 
 ```mermaid
 flowchart LR
-    INPUT["Text / Audio"] --> SUP["Supervisor"]
-    
-    SUP --> INFO["Info Agent"] --> DB[("pgvector")] --> OUT1["Response"]
-    SUP --> ACT["Action Agent"] --> MCP["MCP → n8n"] --> OUT2["Execution"]
-    SUP --> ESC["Escalation"] --> HUM["Human"] --> OUT3["Handoff"]
+    INPUT["Text / Audio"] --> SUP["Supervisor"]
+    
+    SUP --> INFO["Info Agent"] --> DB[("pgvector")] --> OUT1["Response"]
+    SUP --> ACT["Action Agent"] --> MCP["MCP → n8n"] --> OUT2["Execution"]
+    SUP --> ESC["Escalation"] --> HUM["Human"] --> OUT3["Handoff"]
 
-    classDef input fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e40af
-    classDef routing fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e
-    classDef agent fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#5b21b6
-    classDef tool fill:#cffafe,stroke:#0891b2,stroke-width:2px,color:#155e75
-    classDef output fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#065f46
+    classDef input fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e40af
+    classDef routing fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e
+    classDef agent fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#5b21b6
+    classDef tool fill:#cffafe,stroke:#0891b2,stroke-width:2px,color:#155e75
+    classDef output fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#065f46
 
-    class INPUT input
-    class SUP routing
-    class INFO,ACT,ESC agent
-    class DB,MCP,HUM tool
-    class OUT1,OUT2,OUT3 output
+    class INPUT input
+    class SUP routing
+    class INFO,ACT,ESC agent
+    class DB,MCP,HUM tool
+    class OUT1,OUT2,OUT3 output
 ```
 
 ## Technology Decisions
@@ -105,7 +105,7 @@ flowchart LR
 
 ## Core Capabilities
 
-**Multi-Agent RAG**: Policy questions answered with source attribution. 
+**Multi-Agent RAG**: Policy questions answered with source attribution. 
 
 **Automated Actions**: Single message triggers parallel workflows. Cancellation + refund + confirmation execute simultaneously via n8n. No sequential bottlenecks.
 
