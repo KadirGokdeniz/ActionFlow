@@ -27,76 +27,17 @@ from database import (
     vector_search
 )
 
+# Services and Orchestrator imports
+# Import business logic from services instead of defining it here
+from services import (
+    amadeus_get, amadeus_post, amadeus_delete,
+    search_flights_logic, search_hotels_by_city_logic,
+    HOSTNAME # For health check info
+)
+from orchestrator import build_graph
+from langchain_core.messages import HumanMessage
+
 load_dotenv()
-
-# ═══════════════════════════════════════════════════════════════════
-# CONFIG
-# ═══════════════════════════════════════════════════════════════════
-
-API_KEY = os.getenv("AMADEUS_API_KEY")
-API_SECRET = os.getenv("AMADEUS_API_SECRET")
-HOSTNAME = os.getenv("AMADEUS_HOSTNAME", "test")
-BASE_URL = "https://test.api.amadeus.com" if HOSTNAME == "test" else "https://api.amadeus.com"
-
-_token_cache = {"token": None, "expires": None}
-
-
-# ═══════════════════════════════════════════════════════════════════
-# AMADEUS CLIENT
-# ═══════════════════════════════════════════════════════════════════
-
-async def get_token() -> str:
-    if _token_cache["token"] and _token_cache["expires"] and datetime.now() < _token_cache["expires"]:
-        return _token_cache["token"]
-    
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{BASE_URL}/v1/security/oauth2/token",
-            data={"grant_type": "client_credentials", "client_id": API_KEY, "client_secret": API_SECRET},
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
-        )
-        if response.status_code != 200:
-            raise HTTPException(status_code=401, detail="Amadeus authentication failed")
-        
-        data = response.json()
-        _token_cache["token"] = data["access_token"]
-        _token_cache["expires"] = datetime.now() + timedelta(seconds=data["expires_in"] - 60)
-        return _token_cache["token"]
-
-
-async def amadeus_get(endpoint: str, params: dict = None) -> dict:
-    token = await get_token()
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(f"{BASE_URL}{endpoint}", params=params, headers={"Authorization": f"Bearer {token}"})
-        result = response.json()
-        if response.status_code >= 400:
-            error = result.get("errors", [{}])[0].get("detail", "API Error")
-            raise HTTPException(status_code=response.status_code, detail=error)
-        return result.get("data", result)
-
-
-async def amadeus_post(endpoint: str, data: dict) -> dict:
-    token = await get_token()
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            f"{BASE_URL}{endpoint}", json=data, 
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-        )
-        result = response.json()
-        if response.status_code >= 400:
-            error = result.get("errors", [{}])[0].get("detail", "API Error")
-            raise HTTPException(status_code=response.status_code, detail=error)
-        return result.get("data", result)
-
-
-async def amadeus_delete(endpoint: str) -> dict:
-    token = await get_token()
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.delete(f"{BASE_URL}{endpoint}", headers={"Authorization": f"Bearer {token}"})
-        if response.status_code >= 400:
-            raise HTTPException(status_code=response.status_code, detail="Delete failed")
-        return {"success": True}
-
 
 # ═══════════════════════════════════════════════════════════════════
 # SCHEMAS
@@ -407,10 +348,8 @@ async def search_policies(query: str, limit: int = 5, db: AsyncSession = Depends
 
 @app.get("/hotels/search/city/{city_code}")
 async def search_hotels_by_city(city_code: str, radius: int = 5, ratings: str = None):
-    params = {"cityCode": city_code.upper(), "radius": radius, "radiusUnit": "KM"}
-    if ratings:
-        params["ratings"] = ratings
-    data = await amadeus_get("/v1/reference-data/locations/hotels/by-city", params)
+    # Logic moved to services.py
+    data = await search_hotels_by_city_logic(city_code, radius, ratings)
     return {"count": len(data), "hotels": data}
 
 
@@ -483,19 +422,8 @@ async def hotel_autocomplete(keyword: str):
 @app.get("/flights/search")
 async def search_flights(origin: str, destination: str, date: str, adults: int = 1, 
                          return_date: str = None, travel_class: str = None, max_results: int = 10):
-    params = {
-        "originLocationCode": origin.upper(),
-        "destinationLocationCode": destination.upper(),
-        "departureDate": date,
-        "adults": adults,
-        "max": max_results
-    }
-    if return_date:
-        params["returnDate"] = return_date
-    if travel_class:
-        params["travelClass"] = travel_class
-    
-    data = await amadeus_get("/v2/shopping/flight-offers", params)
+    # Logic moved to services.py
+    data = await search_flights_logic(origin, destination, date, adults, return_date, travel_class, max_results)
     
     if data:
         prices = [float(f.get("price", {}).get("total", 0)) for f in data]
@@ -591,6 +519,7 @@ async def get_flight_order(order_id: str):
 @app.delete("/flights/orders/{order_id}")
 async def cancel_flight_order(order_id: str, db: AsyncSession = Depends(get_db)):
     """Cancel flight and update database"""
+    # Use service method
     await amadeus_delete(f"/v1/booking/flight-orders/{order_id}")
     
     # Update booking status in database
@@ -679,6 +608,46 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         "policies": policies.scalar()
     }
 
+
+# --- AGENT CHAT ENDPOINT ---
+
+class ChatRequest(BaseModel):
+    message: str
+    conversation_id: Optional[str] = None
+    user_id: str
+
+# Global instance initialized via build_graph from orchestrator
+agent_app = build_graph()
+
+@app.post("/chat")
+async def chat_with_agent(request: ChatRequest, db: AsyncSession = Depends(get_db)):
+    # 1. Verify User and Conversation
+    # 2. Load Message History
+    past_messages = [] 
+    current_message = HumanMessage(content=request.message)
+    
+    # 3. State Preparation
+    initial_state = {
+        "messages": past_messages + [current_message],
+        "customer_id": request.user_id,
+        "next_agent": None
+    }
+    
+    # 4. Run Graph
+    # 'ainvoke' works asynchronously, fully compatible with FastAPI
+    result = await agent_app.ainvoke(initial_state)
+    
+    # 5. Get Results
+    last_message = result["messages"][-1]
+    
+    # 6. Save to Database (Can be done in background)
+    
+    return {
+        "response": last_message.content,
+        "intent": result.get("intent"),
+        "urgency": result.get("urgency"),
+        "context": result.get("booking_context")
+    }
 
 # ═══════════════════════════════════════════════════════════════════
 # RUN

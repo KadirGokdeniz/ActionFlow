@@ -39,6 +39,7 @@ services:
       - AMADEUS_API_KEY=${AMADEUS_API_KEY}
       - AMADEUS_API_SECRET=${AMADEUS_API_SECRET}
       - AMADEUS_HOSTNAME=test
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       db:
         condition: service_healthy
