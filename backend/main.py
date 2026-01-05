@@ -17,7 +17,7 @@ import os
 import uuid
 from dotenv import load_dotenv
 
-# Database imports - removed async_session (not needed, using get_db instead)
+# Database imports
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from database import (
@@ -118,7 +118,7 @@ class HotelBookingRequest(BaseModel):
     guest_phone: str
     card_number: str
     card_expiry: str
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None  # Link to ActionFlow user
 
 class FlightBookingRequest(BaseModel):
     flight_offer: Dict[str, Any]
@@ -137,6 +137,7 @@ class FlightBookingRequest(BaseModel):
     country: str = "FR"
     user_id: Optional[str] = None
 
+# New schemas for database operations
 class UserCreate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
@@ -151,7 +152,7 @@ class ConversationCreate(BaseModel):
 
 class MessageCreate(BaseModel):
     conversation_id: str
-    role: str
+    role: str  # user, assistant, system
     content: str
     is_voice: bool = False
     agent_type: Optional[str] = None
@@ -187,6 +188,7 @@ async def root():
 
 @app.get("/health")
 async def health(db: AsyncSession = Depends(get_db)):
+    # Check database connection
     try:
         await db.execute(select(func.count()).select_from(User))
         db_status = "connected"
@@ -202,6 +204,7 @@ async def health(db: AsyncSession = Depends(get_db)):
 
 @app.post("/users")
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    """Create a new user"""
     db_user = User(
         id=str(uuid.uuid4()),
         email=user.email,
@@ -218,6 +221,7 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @app.get("/users/{user_id}")
 async def get_user(user_id: str, db: AsyncSession = Depends(get_db)):
+    """Get user by ID"""
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -234,6 +238,7 @@ async def get_user(user_id: str, db: AsyncSession = Depends(get_db)):
 
 @app.get("/users/{user_id}/bookings")
 async def get_user_bookings(user_id: str, db: AsyncSession = Depends(get_db)):
+    """Get all bookings for a user"""
     result = await db.execute(
         select(Booking).where(Booking.user_id == user_id).order_by(Booking.booked_at.desc())
     )
@@ -263,6 +268,7 @@ async def get_user_bookings(user_id: str, db: AsyncSession = Depends(get_db)):
 
 @app.post("/conversations")
 async def create_conversation(conv: ConversationCreate, db: AsyncSession = Depends(get_db)):
+    """Start a new conversation"""
     db_conv = Conversation(
         id=str(uuid.uuid4()),
         user_id=conv.user_id,
@@ -278,11 +284,13 @@ async def create_conversation(conv: ConversationCreate, db: AsyncSession = Depen
 
 @app.get("/conversations/{conversation_id}")
 async def get_conversation(conversation_id: str, db: AsyncSession = Depends(get_db)):
+    """Get conversation with messages"""
     result = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
     conv = result.scalar_one_or_none()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
+    # Get messages
     msg_result = await db.execute(
         select(Message).where(Message.conversation_id == conversation_id).order_by(Message.created_at)
     )
@@ -304,6 +312,8 @@ async def get_conversation(conversation_id: str, db: AsyncSession = Depends(get_
 
 @app.post("/conversations/{conversation_id}/messages")
 async def add_message(conversation_id: str, msg: MessageCreate, db: AsyncSession = Depends(get_db)):
+    """Add message to conversation"""
+    # Verify conversation exists
     result = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
     conv = result.scalar_one_or_none()
     if not conv:
@@ -319,6 +329,7 @@ async def add_message(conversation_id: str, msg: MessageCreate, db: AsyncSession
     )
     db.add(db_msg)
     
+    # Update conversation transcript
     conv.transcript = (conv.transcript or "") + f"\n{msg.role}: {msg.content}"
     conv.updated_at = datetime.utcnow()
     
@@ -332,6 +343,7 @@ async def add_message(conversation_id: str, msg: MessageCreate, db: AsyncSession
 
 @app.get("/policies")
 async def list_policies(category: str = None, db: AsyncSession = Depends(get_db)):
+    """List all policies, optionally filtered by category"""
     query = select(Policy)
     if category:
         query = query.where(Policy.category == category)
@@ -350,6 +362,7 @@ async def list_policies(category: str = None, db: AsyncSession = Depends(get_db)
 
 @app.get("/policies/{policy_id}")
 async def get_policy(policy_id: str, db: AsyncSession = Depends(get_db)):
+    """Get full policy content"""
     result = await db.execute(select(Policy).where(Policy.id == policy_id))
     policy = result.scalar_one_or_none()
     if not policy:
@@ -367,6 +380,10 @@ async def get_policy(policy_id: str, db: AsyncSession = Depends(get_db)):
 
 @app.get("/policies/search/{query}")
 async def search_policies(query: str, limit: int = 5, db: AsyncSession = Depends(get_db)):
+    """
+    Search policies by text (basic search)
+    TODO: Implement vector search when embeddings are generated
+    """
     result = await db.execute(
         select(Policy).where(
             Policy.content.ilike(f"%{query}%") | Policy.title.ilike(f"%{query}%")
@@ -420,6 +437,7 @@ async def get_hotel_offers(request: HotelOffersRequest):
 
 @app.post("/hotels/book")
 async def book_hotel(request: HotelBookingRequest, db: AsyncSession = Depends(get_db)):
+    """Book hotel and save to database"""
     booking_data = {
         "data": {
             "type": "hotel-order",
@@ -433,6 +451,7 @@ async def book_hotel(request: HotelBookingRequest, db: AsyncSession = Depends(ge
     }
     data = await amadeus_post(f"/v2/booking/hotel-orders?offerId={request.offer_id}", booking_data)
     
+    # Save to database if user_id provided
     if request.user_id:
         db_booking = Booking(
             id=str(uuid.uuid4()),
@@ -442,8 +461,8 @@ async def book_hotel(request: HotelBookingRequest, db: AsyncSession = Depends(ge
             external_id=data.get("id"),
             details=data,
             currency="EUR",
-            total_amount=0,
-            travel_date=datetime.utcnow()
+            total_amount=0,  # Extract from response
+            travel_date=datetime.utcnow()  # Extract from response
         )
         db.add(db_booking)
         await db.commit()
@@ -498,6 +517,7 @@ async def price_flight(flight_offer: Dict[str, Any]):
 
 @app.post("/flights/book")
 async def book_flight(request: FlightBookingRequest, db: AsyncSession = Depends(get_db)):
+    """Book flight and save to database"""
     ticketing_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%dT23:59:00")
     
     booking_data = {
@@ -541,6 +561,7 @@ async def book_flight(request: FlightBookingRequest, db: AsyncSession = Depends(
     data = await amadeus_post("/v1/booking/flight-orders", booking_data)
     pnr = data.get("associatedRecords", [{}])[0].get("reference") if data.get("associatedRecords") else None
     
+    # Save to database if user_id provided
     if request.user_id:
         price = request.flight_offer.get("price", {}).get("total", 0)
         db_booking = Booking(
@@ -553,7 +574,7 @@ async def book_flight(request: FlightBookingRequest, db: AsyncSession = Depends(
             details=data,
             currency=request.flight_offer.get("price", {}).get("currency", "EUR"),
             total_amount=float(price),
-            travel_date=datetime.utcnow()
+            travel_date=datetime.utcnow()  # Extract from flight offer
         )
         db.add(db_booking)
         await db.commit()
@@ -569,8 +590,10 @@ async def get_flight_order(order_id: str):
 
 @app.delete("/flights/orders/{order_id}")
 async def cancel_flight_order(order_id: str, db: AsyncSession = Depends(get_db)):
+    """Cancel flight and update database"""
     await amadeus_delete(f"/v1/booking/flight-orders/{order_id}")
     
+    # Update booking status in database
     result = await db.execute(select(Booking).where(Booking.external_id == order_id))
     booking = result.scalar_one_or_none()
     if booking:
@@ -643,6 +666,7 @@ async def get_recommendations(cities: str, country: str = "US"):
 
 @app.get("/stats")
 async def get_stats(db: AsyncSession = Depends(get_db)):
+    """Get database statistics"""
     users = await db.execute(select(func.count()).select_from(User))
     conversations = await db.execute(select(func.count()).select_from(Conversation))
     bookings = await db.execute(select(func.count()).select_from(Booking))

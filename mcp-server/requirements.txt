@@ -1,17 +1,9 @@
-# FastAPI & Server
-fastapi>=0.109.0
-uvicorn[standard]>=0.27.0
-python-dotenv>=1.0.0
-httpx>=0.26.0
+# FastAPI ve Web
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
 
-# Database - PostgreSQL
-sqlalchemy[asyncio]>=2.0.25
-asyncpg>=0.29.0        # Async PostgreSQL driver
-psycopg2-binary>=2.9.9 # Sync driver (for migrations)
-pgvector>=0.2.4        # Vector similarity search
-
-# Pydantic
-pydantic>=2.5.0
+# HTTP client (backend'e istek için)
+httpx>=0.25.0
 
 # Utilities
-python-multipart>=0.0.6  # For file uploads (future)
+python-dotenv>=1.0.0

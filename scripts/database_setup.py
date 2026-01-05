@@ -94,11 +94,18 @@ def init_database():
     
     # Import here to avoid issues if dependencies not installed
     try:
+        from pathlib import Path
+        import sys
+        # Backend klasöründen import et
+        backend_path = Path(__file__).parent.parent / "backend"
+        sys.path.insert(0, str(backend_path))
+        
         from sqlalchemy import create_engine, text
         from database import Base, SYNC_DATABASE_URL
     except ImportError as e:
         print(f"Missing dependencies. Install with:")
         print(f"  pip install sqlalchemy psycopg2-binary pgvector")
+        print(f"Error: {e}")
         sys.exit(1)
     
     print(f"\nConnecting to database...")
@@ -140,6 +147,11 @@ def init_database():
 
 def seed_sample_policies():
     """Add sample policies for testing RAG"""
+    
+    from pathlib import Path
+    import sys
+    backend_path = Path(__file__).parent.parent / "backend"
+    sys.path.insert(0, str(backend_path))
     
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session

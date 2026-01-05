@@ -1,5 +1,10 @@
+# ActionFlow AI - Docker Compose
+# 3 Servis: PostgreSQL, Backend (FastAPI), MCP Server
+
 services:
-  # Veritabanı Servisi
+  # ═══════════════════════════════════════════════════════════════
+  # Veritabanı
+  # ═══════════════════════════════════════════════════════════════
   db:
     image: pgvector/pgvector:pg16
     container_name: actionflow-db
@@ -17,11 +22,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - actionflow-network
 
-  # FastAPI Uygulama Servisi
-  api:
-    build: .
-    container_name: actionflow-api
+  # ═══════════════════════════════════════════════════════════════
+  # Backend - FastAPI + Amadeus API
+  # ═══════════════════════════════════════════════════════════════
+  backend:
+    build: ./backend
+    container_name: actionflow-backend
     restart: always
     ports:
       - "8000:8000"
@@ -33,7 +42,31 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - actionflow-network
 
-# Hata buradaydı: Hacmi (Volume) global olarak tanımlamalıyız
+  # ═══════════════════════════════════════════════════════════════
+  # MCP Server - LLM Tool Bridge
+  # ═══════════════════════════════════════════════════════════════
+  mcp-server:
+    build: ./mcp-server
+    container_name: actionflow-mcp
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - actionflow-network
+
+# ═══════════════════════════════════════════════════════════════
+# Volumes ve Networks
+# ═══════════════════════════════════════════════════════════════
 volumes:
   actionflow-pgdata:
+
+networks:
+  actionflow-network:
+    driver: bridge

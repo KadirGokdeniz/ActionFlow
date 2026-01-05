@@ -2,7 +2,7 @@
 ActionFlow AI - Database Models & Connection
 PostgreSQL + pgvector for conversations, bookings, and policy RAG
 
-Setup: pip install sqlalchemy asyncpg pgvector python-dotenv psycopg2-binary
+Setup: pip install sqlalchemy asyncpg pgvector python-dotenv
 """
 
 from sqlalchemy import (
@@ -110,11 +110,8 @@ class Conversation(Base):
     stt_confidence = Column(Float, nullable=True)
     duration_seconds = Column(Integer, nullable=True)
     
-    # Embedding for semantic search - Text fallback if pgvector not available
-    if PGVECTOR_AVAILABLE:
-        transcript_embedding = Column(Vector(1536), nullable=True)
-    else:
-        transcript_embedding = Column(Text, nullable=True)
+    # Embedding for semantic search (requires pgvector)
+    transcript_embedding = Column(Vector(1536), nullable=True) if PGVECTOR_AVAILABLE else Column(Text, nullable=True)
     
     # Agent routing info
     intent = Column(String(50))           # booking, cancellation, inquiry, etc.
@@ -200,11 +197,8 @@ class Policy(Base):
     title = Column(String(255))
     content = Column(Text)
     
-    # Embedding for semantic search - Text fallback if pgvector not available
-    if PGVECTOR_AVAILABLE:
-        content_embedding = Column(Vector(1536), nullable=True)
-    else:
-        content_embedding = Column(Text, nullable=True)
+    # Embedding for semantic search (requires pgvector)
+    content_embedding = Column(Vector(1536), nullable=True) if PGVECTOR_AVAILABLE else Column(Text, nullable=True)
     
     # Metadata
     effective_date = Column(DateTime, nullable=True)
@@ -226,17 +220,17 @@ Index("ix_bookings_user", Booking.user_id)
 Index("ix_bookings_status", Booking.status)
 Index("ix_policies_category", Policy.category)
 
+# Vector similarity search indexes (created separately if pgvector available)
+# These are created via SQL after table creation
+
 
 # ═══════════════════════════════════════════════════════════════════
-# DATABASE CONNECTION
+# DATABASE CONNECTION (Lazy initialization)
 # ═══════════════════════════════════════════════════════════════════
 
-# Global variables for lazy initialization
+# These will be initialized when get_async_engine() is called
 _async_engine = None
 _async_session_maker = None
-
-# Export alias for backward compatibility (will be set when engine initializes)
-async_session = None
 
 
 def get_sync_engine():
@@ -246,13 +240,12 @@ def get_sync_engine():
 
 def get_async_engine():
     """Get async engine for FastAPI runtime"""
-    global _async_engine, _async_session_maker, async_session
+    global _async_engine, _async_session_maker
     
     if _async_engine is None:
         from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
         _async_engine = create_async_engine(ASYNC_DATABASE_URL, echo=False)
         _async_session_maker = async_sessionmaker(_async_engine, class_=AsyncSession, expire_on_commit=False)
-        async_session = _async_session_maker  # Set the export alias
     
     return _async_engine
 
@@ -271,7 +264,7 @@ async def init_db():
     """Initialize database tables (async version for FastAPI startup)"""
     engine = get_async_engine()
     async with engine.begin() as conn:
-        # Create pgvector extension (use text() for raw SQL)
+        # Create pgvector extension
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)
