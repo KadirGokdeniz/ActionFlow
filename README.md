@@ -29,31 +29,50 @@ One message. Multiple actions. No waiting.
 ## Demo Scenario
 
 ```
-Traveler: "Yarınki Amsterdam otelimi iptal etmem lazım, uçuş değişti"
+Traveler: "I want to visit Paris"
 
 ActionFlow:
-├─ Supervisor       → Intent: cancellation | Urgency: high (tomorrow)
-├─ Info Agent       → Retrieves cancellation policy → Free cancellation eligible
-├─ Action Agent     → Triggers n8n workflow:
-│   ├─ Booking API  → Cancel reservation
-│   ├─ Payment      → Initiate €142 refund
-│   └─ Email        → Send confirmation
-└─ Response         → "Rezervasyonunuz iptal edildi. €142 iade 3-5 iş günü 
-                       içinde kartınıza yansıyacak. Yeni otel önerisi ister misiniz?"
-
-Total time: <3 seconds
+├─ Supervisor         → Intent: trip planning | Details missing
+├─ Intent Sharpener   → Asks follow-up questions:
+│   ├─ "When are you planning to travel?"
+│   └─ "What is your approximate budget?"
+├─ Traveler           → "Mid-May, 1000 euros."
+├─ Supervisor         → Intent confirmed | Context complete
+├─ Action Agent       → Searches flights and hotels
+├─ Response           → "I found 3 flight options and 5 hotels.
+│                        Would you like to review them?"
+├─ Traveler           → "Show me the best option"
+├─ Action Agent       → Presents recommendation:
+│   └─ "Best match: TK1823 + Mercure Paris Centre.
+│       Total price: €1,650 for 2 people."
+├─ Action Agent       → Requests confirmation:
+│   └─ "Would you like me to proceed with the booking?"
+├─ Traveler           → "Yes, book it"
+├─ Action Agent       → Triggers n8n workflow:
+│   ├─ Flight Booking → Confirm flight reservation
+│   ├─ Hotel Booking  → Confirm hotel reservation
+│   └─ Email          → Send booking confirmation
+└─ Response           → "Your trip to Paris is booked successfully.
+                         Confirmation details have been sent to your email."
 ```
 
 ```
-Traveler (voice, at airport): "I need a hotel near Schiphol for tonight, 
-                               under 150 euros, with free cancellation"
+Traveler: "Cancel my Amsterdam hotel for tomorrow. My flight was changed."
 
 ActionFlow:
-├─ Supervisor       → Intent: booking | Constraints: location, price, policy
-├─ Action Agent     → Search API → 3 matching hotels
-├─ Info Agent       → User history → Prefers 4-star, quiet rooms
-└─ Response (TTS)   → "I found 3 options. Best match: Hilton Garden Inn, 
-                       €129, 8-minute walk to terminal. Book it?"
+├─ Supervisor         → Intent: hotel cancellation | Urgency: high
+├─ Info Agent         → Retrieves cancellation policy
+├─ Info Agent         → Result: Free cancellation until today, €142 refundable
+├─ Action Agent       → Presents confirmation request:
+│   └─ "Your hotel allows free cancellation and a €142 refund.
+│       Do you want me to proceed with the cancellation?"
+├─ Traveler           → "Yes, cancel it"
+├─ Action Agent       → Triggers n8n workflow:
+│   ├─ Booking API    → Cancel hotel reservation
+│   ├─ Payment        → Initiate €142 refund
+│   └─ Email          → Send cancellation confirmation
+└─ Response           → "Your hotel reservation has been cancelled.
+                         The refund will be processed within 3–5 business days."
 ```
 
 ## System Architecture
@@ -62,23 +81,32 @@ Supervisor agent routes based on intent and urgency. Specialized agents handle i
 
 ```mermaid
 flowchart LR
-    INPUT["Text / Audio"] --> SUP["Supervisor"]
-    
-    SUP --> INFO["Info Agent"] --> DB[("pgvector")] --> OUT1["Response"]
-    SUP --> ACT["Action Agent"] --> MCP["MCP → n8n"] --> OUT2["Execution"]
-    SUP --> ESC["Escalation"] --> HUM["Human"] --> OUT3["Handoff"]
+    INPUT["User Message<br/>(Text / Voice)"] --> SUP["Supervisor"]
 
-    classDef input fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e40af
-    classDef routing fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e
-    classDef agent fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#5b21b6
-    classDef tool fill:#cffafe,stroke:#0891b2,stroke-width:2px,color:#155e75
-    classDef output fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#065f46
+    SUP --> SHARP["Intent Sharpener"]
+    SHARP --> TravelCon["Travel Context"]
+    TravelCon -->SHARP
+    SUP --> INFO["Info Agent"]
+    SUP --> ACT["Action Agent"]
+    SUP --> ESC["Escalation"]
 
-    class INPUT input
-    class SUP routing
-    class INFO,ACT,ESC agent
-    class DB,MCP,HUM tool
-    class OUT1,OUT2,OUT3 output
+    INFO --> DB[("Policy / History")]
+    DB --> INFO
+    ACT --> MCP["MCP → n8n"]
+    ESC --> HUM["Human"]
+
+    classDef input fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e40af
+    classDef core fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e
+    classDef agent fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#5b21b6
+    classDef tool fill:#cffafe,stroke:#0891b2,stroke-width:2px,color:#155e75
+    classDef output fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#065f46
+
+    class INPUT input
+    class SUP core
+    class SHARP,INFO,ACT,ESC agent
+    class DB,MCP,HUM,TravelCon tool
+    class OUT output
+
 ```
 
 ## Technology Decisions
@@ -98,10 +126,11 @@ flowchart LR
 
 | Agent | Triggers | Example Actions |
 |-------|----------|-----------------|
-| **Supervisor** | Every message | "Cancel hotel" → urgency 4, route to Action. "What's the refund policy?" → urgency 2, route to Info. |
+| **Supervisor** | Every message | Classifies intent and urgency, decides next state. Routes to Intent Sharpener if information is missing, Info Agent for policy questions, or Action Agent for execution. |
+| **Intent Sharpener**| Incomplete or ambiguous intent | Asks targeted follow-up questions to collect missing details (dates, budget, passengers, preferences) before any action is taken. |
 | **Info Agent** | Policy questions, comparisons | RAG search over cancellation policies, baggage rules, refund timelines. Source attribution included. |
 | **Action Agent** | Reservations, cancellations, changes | Triggers booking API via MCP tools, initiates refunds, sends confirmations. Reports execution status. |
-| **Escalation Agent** | Payment disputes, complex rebooking, angry customer | Handoff to human agent with full context: conversation history, attempted actions, customer tier. |
+| **Escalation Agent** | Payment disputes, complex rebooking, angry customer | Handoff to human agent with full context: conversation history, attempted actions, customer tier, urgency score. |
 
 ## Core Capabilities
 
@@ -114,6 +143,8 @@ flowchart LR
 **Voice-First Design**: Real-time STT/TTS in Turkish and English. Sub-500ms latency. Designed for hands-free use during travel.
 
 **Smart Escalation**: When AI can't help, human agent receives full context: conversation transcript, customer history, attempted solutions, urgency score. No "please repeat your issue."
+
+**Guided Clarification**: When user intent is incomplete or ambiguous, the system proactively asks targeted follow-up questions to collect missing constraints (dates, budget, passengers, preferences) before taking any action.
 
 ## Quick Start
 
