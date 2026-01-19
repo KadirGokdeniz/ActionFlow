@@ -81,32 +81,30 @@ Supervisor agent routes based on intent and urgency. Specialized agents handle i
 
 ```mermaid
 flowchart LR
-    INPUT["User Message<br/>(Text / Voice)"] --> SUP["Supervisor"]
+    INPUT["Text / Audio"] --> SUP["Supervisor"]
 
-    SUP --> SHARP["Intent Sharpener"]
-    SHARP --> TravelCon["Travel Context"]
-    TravelCon -->SHARP
-    SUP --> INFO["Info Agent"]
-    SUP --> ACT["Action Agent"]
-    SUP --> ESC["Escalation"]
+    SUP --> SHARP["Intent Sharpener<br/>(Context Filler)"]
+    SHARP --> SUP
 
-    INFO --> DB[("Policy / History")]
-    DB --> INFO
-    ACT --> MCP["MCP → n8n"]
-    ESC --> HUM["Human"]
+    SUP --> INFO["Info Agent (pgvector)"]
+    INFO --> SUP
 
-    classDef input fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e40af
-    classDef core fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e
-    classDef agent fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#5b21b6
-    classDef tool fill:#cffafe,stroke:#0891b2,stroke-width:2px,color:#155e75
-    classDef output fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#065f46
+    SUP --> ACT["Action Agent (n8n)"]
+    ACT --> SUP
+
+    SUP -->| Failed| ESC["Escalation"]
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#0c4a6e
+    classDef routing fill:#fef9c3,stroke:#ca8a04,stroke-width:1.5px,color:#713f12
+    classDef agent fill:#ede9fe,stroke:#7c3aed,stroke-width:1.5px,color:#4c1d95
+    classDef tool fill:#cffafe,stroke:#0891b2,stroke-width:1.5px,color:#155e75
+    classDef output fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
 
     class INPUT input
-    class SUP core
+    class SUP routing
     class SHARP,INFO,ACT,ESC agent
-    class DB,MCP,HUM,TravelCon tool
-    class OUT output
-
+    class DB,MCP,HUM tool
+    class OUT1,OUT2,OUT3 output
 ```
 
 ## Technology Decisions
