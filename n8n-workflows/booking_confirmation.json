@@ -1,0 +1,112 @@
+{
+  "name": "ActionFlow - Booking Confirmation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "booking-confirmation",
+        "options": {}
+      },
+      "id": "webhook-booking",
+      "name": "Webhook - New Booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format booking data for email\nconst booking = $input.first().json;\n\nconst formatDate = (dateStr) => {\n  if (!dateStr) return 'N/A';\n  return new Date(dateStr).toLocaleDateString('tr-TR', {\n    weekday: 'long',\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric'\n  });\n};\n\nconst emailData = {\n  to: booking.customer_email || 'customer@example.com',\n  subject: `✈️ Rezervasyon Onayı - ${booking.pnr || booking.booking_id}`,\n  booking_id: booking.booking_id,\n  pnr: booking.pnr || 'N/A',\n  customer_name: booking.customer_name || 'Değerli Müşterimiz',\n  booking_type: booking.booking_type || 'flight',\n  \n  // Flight details\n  origin: booking.origin || '',\n  destination: booking.destination || '',\n  departure_date: formatDate(booking.departure_date),\n  return_date: formatDate(booking.return_date),\n  \n  // Hotel details\n  hotel_name: booking.hotel_name || '',\n  check_in: formatDate(booking.check_in),\n  check_out: formatDate(booking.check_out),\n  \n  // Common\n  total_amount: booking.total_amount || 0,\n  currency: booking.currency || 'EUR',\n  passengers: booking.passengers || 1,\n  status: booking.status || 'confirmed',\n  created_at: formatDate(booking.created_at || new Date().toISOString())\n};\n\n// Generate email HTML\nlet detailsHtml = '';\n\nif (emailData.booking_type === 'flight') {\n  detailsHtml = `\n    <tr><td><strong>Kalkış:</strong></td><td>${emailData.origin}</td></tr>\n    <tr><td><strong>Varış:</strong></td><td>${emailData.destination}</td></tr>\n    <tr><td><strong>Gidiş Tarihi:</strong></td><td>${emailData.departure_date}</td></tr>\n    ${emailData.return_date !== 'N/A' ? `<tr><td><strong>Dönüş Tarihi:</strong></td><td>${emailData.return_date}</td></tr>` : ''}\n    <tr><td><strong>Yolcu Sayısı:</strong></td><td>${emailData.passengers}</td></tr>\n  `;\n} else if (emailData.booking_type === 'hotel') {\n  detailsHtml = `\n    <tr><td><strong>Otel:</strong></td><td>${emailData.hotel_name}</td></tr>\n    <tr><td><strong>Giriş:</strong></td><td>${emailData.check_in}</td></tr>\n    <tr><td><strong>Çıkış:</strong></td><td>${emailData.check_out}</td></tr>\n  `;\n}\n\nemailData.html_body = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #1a73e8; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }\n    .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }\n    .booking-id { background: #e8f0fe; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; }\n    .booking-id h2 { margin: 0; color: #1a73e8; }\n    table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    td { padding: 10px; border-bottom: 1px solid #eee; }\n    .total { background: #1a73e8; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-top: 20px; }\n    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>✈️ Rezervasyon Onaylandı!</h1>\n    </div>\n    <div class=\"content\">\n      <p>Sayın <strong>${emailData.customer_name}</strong>,</p>\n      <p>Rezervasyonunuz başarıyla oluşturulmuştur.</p>\n      \n      <div class=\"booking-id\">\n        <p style=\"margin:0;color:#666;\">Rezervasyon Kodu</p>\n        <h2>${emailData.pnr}</h2>\n      </div>\n      \n      <h3>📋 Rezervasyon Detayları</h3>\n      <table>\n        ${detailsHtml}\n      </table>\n      \n      <div class=\"total\">\n        <p style=\"margin:0;\">Toplam Tutar</p>\n        <h2 style=\"margin:5px 0;\">${emailData.total_amount} ${emailData.currency}</h2>\n      </div>\n      \n      <p style=\"margin-top:20px;\">Sorularınız için bize ulaşabilirsiniz.</p>\n      <p>İyi yolculuklar dileriz! 🌍</p>\n    </div>\n    <div class=\"footer\">\n      <p>ActionFlow AI - Seyahat Asistanınız</p>\n      <p>Bu otomatik bir bildirimdir.</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\nreturn [emailData];"
+      },
+      "id": "code-format",
+      "name": "Format Email Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@actionflow.ai",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html_body }}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/bookings/{{ $json.booking_id }}/notify",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "notification_type",
+              "value": "email_sent"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            }
+          ]
+        }
+      },
+      "id": "callback-api",
+      "name": "Update Booking Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - New Booking": {
+      "main": [
+        [
+          {
+            "node": "Format Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email Data": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Update Booking Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "ActionFlow"
+    },
+    {
+      "name": "Booking"
+    }
+  ]
+}

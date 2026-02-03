@@ -1,10 +1,21 @@
-# ActionFlow AI - Docker Compose
-# 3 Servis: PostgreSQL, Backend (FastAPI), MCP Server
+# docker-compose.yml
+# ActionFlow AI - Travel Customer Support Automation
+#
+# Services:
+#   - db: PostgreSQL + pgvector
+#   - redis: Session state management
+#   - backend: FastAPI application
+#   - mcp-server: MCP Tool Server
+#   - n8n: Workflow automation
+#   - prometheus/grafana: Monitoring
+#   - frontend: React application
+#
+# Network Flow:
+#   User → Backend → MCP Server → Backend API → Amadeus/Database
+#                 → n8n (workflows) → Email/Notifications
 
 services:
-  # ═══════════════════════════════════════════════════════════════
-  # Veritabanı
-  # ═══════════════════════════════════════════════════════════════
+  # ────────────── PostgreSQL + pgvector ──────────────
   db:
     image: pgvector/pgvector:pg16
     container_name: actionflow-db
@@ -18,37 +29,130 @@ services:
     volumes:
       - actionflow-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U actionflow"]
+      test: [ "CMD-SHELL", "pg_isready -U actionflow" ]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
       - actionflow-network
 
-  # ═══════════════════════════════════════════════════════════════
-  # Backend - FastAPI + Amadeus API
-  # ═══════════════════════════════════════════════════════════════
+  # ────────────── Redis (Session State) ──────────────
+  redis:
+    image: redis:7-alpine
+    container_name: actionflow-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - actionflow-redis:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - actionflow-network
+
+  # ────────────── n8n (Workflow Automation) ──────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: actionflow-n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=actionflow123
+      - N8N_PROTOCOL=http
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_API_KEY=${N8N_API_KEY} 
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+    volumes:
+      - actionflow-n8n-data:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:5678/healthz" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - actionflow-network
+
+  # ────────────── Backend - FastAPI ──────────────
   backend:
     build: ./backend
     container_name: actionflow-backend
     restart: always
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://actionflow:dev123@db:5432/actionflow
-      - AMADEUS_API_KEY=${AMADEUS_API_KEY}
-      - AMADEUS_API_SECRET=${AMADEUS_API_SECRET}
-      - AMADEUS_HOSTNAME=test
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Database
+      DATABASE_URL: postgresql+asyncpg://actionflow:dev123@db:5432/actionflow
+      SYNC_DATABASE_URL: postgresql://actionflow:dev123@db:5432/actionflow
+
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+
+      # MCP Server bağlantısı
+      MCP_SERVER_URL: http://mcp-server:3000
+
+      # n8n Integration
+      N8N_WEBHOOK_BASE: http://n8n:5678/webhook
+
+      # Amadeus API
+      AMADEUS_API_KEY: ${AMADEUS_API_KEY}
+      AMADEUS_API_SECRET: ${AMADEUS_API_SECRET}
+      AMADEUS_HOSTNAME: ${AMADEUS_HOSTNAME}
+
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+      # Twilio (WhatsApp)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER}
+
+      # Voice Services
+      ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID:-cgSgspJ2msm6clMCkdW9}
+
+      # LangChain/LangSmith (opsiyonel - tracing için)
+      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}
+      LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-actionflow}
+
+      PINECONE_API_KEY: ${PINECONE_API_KEY}
+      PINECONE_INDEX_NAME: ${PINECONE_INDEX_NAME:-actionflow-policies}
+      PINECONE_ENVIRONMENT: ${PINECONE_ENVIRONMENT:-us-east-1}
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      mcp-server:
+        condition: service_started
+      n8n:
+        condition: service_started
     networks:
       - actionflow-network
+    volumes:
+      - ./scripts/database_setup.py:/app/database_setup.py
+      - ./backend:/app
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # ═══════════════════════════════════════════════════════════════
-  # MCP Server - LLM Tool Bridge
-  # ═══════════════════════════════════════════════════════════════
+  # ────────────── MCP Server ──────────────
   mcp-server:
     build: ./mcp-server
     container_name: actionflow-mcp
@@ -56,18 +160,155 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - BACKEND_URL=http://backend:8000
+      # Backend API bağlantısı (tool'lar buraya istek atar)
+      BACKEND_URL: http://backend:8000
+      MCP_PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - actionflow-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ────────────── Monitoring ──────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: actionflow-prometheus
+    restart: always
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - actionflow-prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - actionflow-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: actionflow-grafana
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - actionflow-grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro  # ← EKLE
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro    # ← EKLE
+    networks:
+      - actionflow-network
+  # ────────────── Frontend - React (Nginx) ──────────────
+  frontend:
+    build: ./frontend
+    container_name: actionflow-frontend
+    restart: always
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+      - VITE_WS_URL=ws://localhost:8000/api/v1/chat/ws
+      - VITE_USE_MOCK=false
     depends_on:
       - backend
     networks:
       - actionflow-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-# ═══════════════════════════════════════════════════════════════
-# Volumes ve Networks
-# ═══════════════════════════════════════════════════════════════
+  # ────────────── Test Services (Development) ──────────────
+
+  # Database connection test
+  test-db:
+    build: ./backend
+    container_name: actionflow-test-db
+    command: python -m app.test_db
+    environment:
+      DATABASE_URL: postgresql+asyncpg://actionflow:dev123@db:5432/actionflow
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - actionflow-network
+    profiles:
+      - test
+
+  # pgvector test
+  test-vector:
+    build: ./backend
+    container_name: actionflow-test-vector
+    command: python -m app.test_vector
+    environment:
+      DATABASE_URL: postgresql+asyncpg://actionflow:dev123@db:5432/actionflow
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - actionflow-network
+    profiles:
+      - test
+
+  # MCP Server test
+  test-mcp:
+    build: ./backend
+    container_name: actionflow-test-mcp
+    command: >
+      python -c "
+      import asyncio
+      import httpx
+
+      async def test():
+          async with httpx.AsyncClient() as client:
+              # Health check
+              r = await client.get('http://mcp-server:3000/health')
+              print(f'Health: {r.json()}')
+              
+              # List tools
+              r = await client.post('http://mcp-server:3000/message', json={
+                  'jsonrpc': '2.0',
+                  'method': 'tools/list',
+                  'params': {},
+                  'id': '1'
+              })
+              tools = r.json().get('result', {}).get('tools', [])
+              print(f'Tools ({len(tools)}): {[t[\"name\"] for t in tools]}')
+
+      asyncio.run(test())
+      "
+    depends_on:
+      - mcp-server
+    networks:
+      - actionflow-network
+    profiles:
+      - test
+
+# ────────────── Volumes ──────────────
 volumes:
   actionflow-pgdata:
+    name: actionflow-pgdata
+  actionflow-redis:
+    name: actionflow-redis
+  actionflow-n8n-data:
+    name: actionflow-n8n-data
+  actionflow-prometheus-data:
+    name: actionflow-prometheus-data
+  actionflow-grafana-data:
+    name: actionflow-grafana-data
 
+# ────────────── Networks ──────────────
 networks:
   actionflow-network:
     driver: bridge
+    name: actionflow-network

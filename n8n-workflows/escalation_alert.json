@@ -1,0 +1,198 @@
+{
+  "name": "ActionFlow - Escalation Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escalation-alert",
+        "options": {}
+      },
+      "id": "webhook-escalation",
+      "name": "Webhook - Escalation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process escalation data\nconst data = $input.first().json;\n\n// Calculate urgency level\nlet urgencyLevel = 'NORMAL';\nlet urgencyColor = '#ffc107'; // Yellow\nlet urgencyEmoji = '⚠️';\n\nif (data.urgency_score >= 80) {\n  urgencyLevel = 'CRITICAL';\n  urgencyColor = '#dc3545'; // Red\n  urgencyEmoji = '🚨';\n} else if (data.urgency_score >= 60) {\n  urgencyLevel = 'HIGH';\n  urgencyColor = '#fd7e14'; // Orange\n  urgencyEmoji = '🔴';\n} else if (data.urgency_score >= 40) {\n  urgencyLevel = 'MEDIUM';\n  urgencyColor = '#ffc107'; // Yellow\n  urgencyEmoji = '🟡';\n} else {\n  urgencyLevel = 'LOW';\n  urgencyColor = '#28a745'; // Green\n  urgencyEmoji = '🟢';\n}\n\nconst escalationData = {\n  conversation_id: data.conversation_id,\n  user_id: data.user_id,\n  user_name: data.user_name || 'Anonim',\n  user_email: data.user_email || '',\n  user_phone: data.user_phone || '',\n  \n  reason: data.reason || 'Müşteri yetkiliye bağlanmak istiyor',\n  category: data.category || 'general',\n  urgency_score: data.urgency_score || 50,\n  urgency_level: urgencyLevel,\n  urgency_color: urgencyColor,\n  urgency_emoji: urgencyEmoji,\n  \n  // Conversation summary\n  summary: data.summary || 'Özet mevcut değil',\n  last_message: data.last_message || '',\n  message_count: data.message_count || 0,\n  \n  // Timestamps\n  created_at: new Date().toISOString(),\n  formatted_time: new Date().toLocaleString('tr-TR'),\n  \n  // Agent info\n  assigned_to: data.assigned_to || 'unassigned',\n  department: data.department || 'customer-support'\n};\n\n// Generate HTML for email\nescalationData.html_email = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: ${urgencyColor}; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }\n    .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }\n    .urgency-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; background: ${urgencyColor}; color: white; font-weight: bold; }\n    .info-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid ${urgencyColor}; }\n    .message-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; }\n    .btn { display: inline-block; padding: 12px 24px; background: #1a73e8; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }\n    table { width: 100%; border-collapse: collapse; }\n    td { padding: 8px; border-bottom: 1px solid #eee; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>${urgencyEmoji} Escalation Alert</h1>\n      <span class=\"urgency-badge\">${urgencyLevel}</span>\n    </div>\n    <div class=\"content\">\n      <div class=\"info-box\">\n        <h3>📋 Müşteri Bilgileri</h3>\n        <table>\n          <tr><td><strong>İsim:</strong></td><td>${escalationData.user_name}</td></tr>\n          <tr><td><strong>Email:</strong></td><td>${escalationData.user_email || 'N/A'}</td></tr>\n          <tr><td><strong>Telefon:</strong></td><td>${escalationData.user_phone || 'N/A'}</td></tr>\n          <tr><td><strong>Conversation ID:</strong></td><td>${escalationData.conversation_id}</td></tr>\n        </table>\n      </div>\n      \n      <div class=\"info-box\">\n        <h3>⚡ Escalation Detayı</h3>\n        <table>\n          <tr><td><strong>Sebep:</strong></td><td>${escalationData.reason}</td></tr>\n          <tr><td><strong>Kategori:</strong></td><td>${escalationData.category}</td></tr>\n          <tr><td><strong>Aciliyet Skoru:</strong></td><td>${escalationData.urgency_score}/100</td></tr>\n          <tr><td><strong>Mesaj Sayısı:</strong></td><td>${escalationData.message_count}</td></tr>\n        </table>\n      </div>\n      \n      <div class=\"message-box\">\n        <h3>💬 Son Mesaj</h3>\n        <p>${escalationData.last_message || 'Mesaj yok'}</p>\n      </div>\n      \n      <div class=\"info-box\">\n        <h3>📝 Özet</h3>\n        <p>${escalationData.summary}</p>\n      </div>\n      \n      <div style=\"text-align: center; margin-top: 20px;\">\n        <a href=\"#\" class=\"btn\">🎧 Görüşmeyi Üstlen</a>\n        <a href=\"#\" class=\"btn\" style=\"background: #28a745;\">✅ Çözüldü İşaretle</a>\n      </div>\n      \n      <p style=\"text-align: center; color: #666; margin-top: 20px;\">\n        ${escalationData.formatted_time}\n      </p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\n// Generate Slack message\nescalationData.slack_message = {\n  text: `${urgencyEmoji} *Escalation Alert* - ${urgencyLevel}`,\n  blocks: [\n    {\n      type: \"header\",\n      text: {\n        type: \"plain_text\",\n        text: `${urgencyEmoji} Escalation Alert`,\n        emoji: true\n      }\n    },\n    {\n      type: \"section\",\n      fields: [\n        { type: \"mrkdwn\", text: `*Müşteri:*\\n${escalationData.user_name}` },\n        { type: \"mrkdwn\", text: `*Aciliyet:*\\n${urgencyLevel} (${escalationData.urgency_score}/100)` },\n        { type: \"mrkdwn\", text: `*Sebep:*\\n${escalationData.reason}` },\n        { type: \"mrkdwn\", text: `*Kategori:*\\n${escalationData.category}` }\n      ]\n    },\n    {\n      type: \"section\",\n      text: {\n        type: \"mrkdwn\",\n        text: `*Son Mesaj:*\\n>${escalationData.last_message || 'N/A'}`\n      }\n    },\n    {\n      type: \"actions\",\n      elements: [\n        {\n          type: \"button\",\n          text: { type: \"plain_text\", text: \"🎧 Üstlen\", emoji: true },\n          style: \"primary\",\n          value: escalationData.conversation_id\n        },\n        {\n          type: \"button\",\n          text: { type: \"plain_text\", text: \"✅ Çözüldü\", emoji: true },\n          style: \"danger\",\n          value: escalationData.conversation_id\n        }\n      ]\n    }\n  ]\n};\n\nreturn [escalationData];"
+      },
+      "id": "code-process",
+      "name": "Process Escalation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.urgency_score }}",
+              "operation": "largerEqual",
+              "value2": 60
+            }
+          ]
+        }
+      },
+      "id": "if-urgent",
+      "name": "Is Urgent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alerts@actionflow.ai",
+        "toEmail": "support-urgent@actionflow.ai",
+        "subject": "={{ $json.urgency_emoji }} URGENT Escalation - {{ $json.user_name }}",
+        "emailType": "html",
+        "html": "={{ $json.html_email }}",
+        "options": {}
+      },
+      "id": "email-urgent",
+      "name": "Send Urgent Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alerts@actionflow.ai",
+        "toEmail": "support@actionflow.ai",
+        "subject": "={{ $json.urgency_emoji }} Escalation - {{ $json.user_name }}",
+        "emailType": "html",
+        "html": "={{ $json.html_email }}",
+        "options": {}
+      },
+      "id": "email-normal",
+      "name": "Send Normal Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/escalations/{{ $json.conversation_id }}/notified",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "notification_sent",
+              "value": "true"
+            },
+            {
+              "name": "urgency_level",
+              "value": "={{ $json.urgency_level }}"
+            }
+          ]
+        }
+      },
+      "id": "callback-urgent",
+      "name": "Update Status (Urgent)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/escalations/{{ $json.conversation_id }}/notified",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "notification_sent",
+              "value": "true"
+            },
+            {
+              "name": "urgency_level",
+              "value": "={{ $json.urgency_level }}"
+            }
+          ]
+        }
+      },
+      "id": "callback-normal",
+      "name": "Update Status (Normal)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1100, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Escalation": {
+      "main": [
+        [
+          {
+            "node": "Process Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Escalation": {
+      "main": [
+        [
+          {
+            "node": "Is Urgent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Urgent?": {
+      "main": [
+        [
+          {
+            "node": "Send Urgent Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Normal Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Urgent Email": {
+      "main": [
+        [
+          {
+            "node": "Update Status (Urgent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Normal Email": {
+      "main": [
+        [
+          {
+            "node": "Update Status (Normal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "ActionFlow"
+    },
+    {
+      "name": "Escalation"
+    }
+  ]
+}

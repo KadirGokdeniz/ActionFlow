@@ -1,9 +1,23 @@
-# FastAPI ve Web
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
+# ActionFlow MCP Server - Dependencies
 
-# HTTP client (backend'e istek için)
-httpx>=0.25.0
+# Web Framework
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
 
-# Utilities
-python-dotenv>=1.0.0
+# HTTP Client (Backend API calls)
+httpx==0.27.0
+
+# Environment & Config
+python-dotenv==1.0.1
+
+# JSON handling (built-in, but explicit for clarity)
+# json is part of stdlib
+
+# Type hints
+typing-extensions==4.9.0
+
+# SSE Support (included in starlette via fastapi)
+sse-starlette==2.0.0
+
+# Async support
+anyio==4.2.0

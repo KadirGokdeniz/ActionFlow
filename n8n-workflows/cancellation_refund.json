@@ -1,0 +1,212 @@
+{
+  "name": "ActionFlow - Cancellation & Refund",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cancellation-request",
+        "options": {}
+      },
+      "id": "webhook-cancel",
+      "name": "Webhook - Cancellation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process cancellation request\nconst data = $input.first().json;\n\n// Calculate refund based on policy\nconst calculateRefund = (booking) => {\n  const bookingDate = new Date(booking.travel_date || booking.check_in);\n  const now = new Date();\n  const daysUntilTravel = Math.ceil((bookingDate - now) / (1000 * 60 * 60 * 24));\n  \n  const totalAmount = booking.total_amount || 0;\n  let refundPercentage = 0;\n  let refundAmount = 0;\n  let cancellationFee = 0;\n  let policy = '';\n  \n  if (daysUntilTravel > 14) {\n    // Full refund\n    refundPercentage = 100;\n    policy = 'Tam iade - 14 günden fazla süre var';\n  } else if (daysUntilTravel > 7) {\n    // 75% refund\n    refundPercentage = 75;\n    policy = '%75 iade - 7-14 gün arası';\n  } else if (daysUntilTravel > 3) {\n    // 50% refund\n    refundPercentage = 50;\n    policy = '%50 iade - 3-7 gün arası';\n  } else if (daysUntilTravel > 0) {\n    // 25% refund\n    refundPercentage = 25;\n    policy = '%25 iade - 3 günden az';\n  } else {\n    // No refund\n    refundPercentage = 0;\n    policy = 'İade yok - Seyahat tarihi geçmiş veya bugün';\n  }\n  \n  refundAmount = (totalAmount * refundPercentage) / 100;\n  cancellationFee = totalAmount - refundAmount;\n  \n  return {\n    days_until_travel: daysUntilTravel,\n    refund_percentage: refundPercentage,\n    refund_amount: refundAmount.toFixed(2),\n    cancellation_fee: cancellationFee.toFixed(2),\n    policy: policy\n  };\n};\n\nconst refundCalc = calculateRefund(data);\n\nconst cancellationData = {\n  // Booking info\n  booking_id: data.booking_id,\n  pnr: data.pnr || 'N/A',\n  booking_type: data.booking_type || 'flight',\n  \n  // Customer info\n  customer_name: data.customer_name || 'Değerli Müşterimiz',\n  customer_email: data.customer_email || '',\n  \n  // Financial\n  original_amount: data.total_amount || 0,\n  currency: data.currency || 'EUR',\n  ...refundCalc,\n  \n  // Reason\n  cancellation_reason: data.reason || 'Müşteri talebi',\n  \n  // Status\n  status: 'pending_refund',\n  requested_at: new Date().toISOString(),\n  formatted_time: new Date().toLocaleString('tr-TR')\n};\n\n// Generate email HTML\ncancellationData.html_email = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }\n    .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }\n    .info-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #dc3545; }\n    .refund-box { background: #d4edda; padding: 20px; border-radius: 8px; margin: 15px 0; text-align: center; }\n    .refund-amount { font-size: 32px; color: #28a745; font-weight: bold; }\n    .fee-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; }\n    table { width: 100%; border-collapse: collapse; }\n    td { padding: 10px; border-bottom: 1px solid #eee; }\n    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>❌ İptal Onayı</h1>\n    </div>\n    <div class=\"content\">\n      <p>Sayın <strong>${cancellationData.customer_name}</strong>,</p>\n      <p>Rezervasyonunuz iptal edilmiştir.</p>\n      \n      <div class=\"info-box\">\n        <h3>📋 İptal Edilen Rezervasyon</h3>\n        <table>\n          <tr><td><strong>Rezervasyon Kodu:</strong></td><td>${cancellationData.pnr}</td></tr>\n          <tr><td><strong>Tür:</strong></td><td>${cancellationData.booking_type === 'flight' ? 'Uçuş' : 'Otel'}</td></tr>\n          <tr><td><strong>İptal Sebebi:</strong></td><td>${cancellationData.cancellation_reason}</td></tr>\n        </table>\n      </div>\n      \n      <div class=\"refund-box\">\n        <p style=\"margin:0; color:#666;\">İade Edilecek Tutar</p>\n        <p class=\"refund-amount\">${cancellationData.refund_amount} ${cancellationData.currency}</p>\n        <p style=\"margin:0; color:#28a745;\">(${cancellationData.refund_percentage}% iade)</p>\n      </div>\n      \n      <div class=\"fee-box\">\n        <h4 style=\"margin-top:0;\">💰 Ücret Detayı</h4>\n        <table>\n          <tr><td>Orijinal Tutar:</td><td><strong>${cancellationData.original_amount} ${cancellationData.currency}</strong></td></tr>\n          <tr><td>İptal Ücreti:</td><td><strong>-${cancellationData.cancellation_fee} ${cancellationData.currency}</strong></td></tr>\n          <tr style=\"background:#d4edda;\"><td>İade Tutarı:</td><td><strong>${cancellationData.refund_amount} ${cancellationData.currency}</strong></td></tr>\n        </table>\n        <p style=\"margin-bottom:0; font-size:12px; color:#666;\">📌 ${cancellationData.policy}</p>\n      </div>\n      \n      <p><strong>İade Süreci:</strong></p>\n      <ul>\n        <li>Kredi kartı iadeleri: 7-14 iş günü</li>\n        <li>Banka havalesi: 3-5 iş günü</li>\n      </ul>\n      \n      <p>Sorularınız için bize ulaşabilirsiniz.</p>\n    </div>\n    <div class=\"footer\">\n      <p>ActionFlow AI - Seyahat Asistanınız</p>\n      <p>İptal tarihi: ${cancellationData.formatted_time}</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\nreturn [cancellationData];"
+      },
+      "id": "code-refund",
+      "name": "Calculate Refund",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/bookings/{{ $json.booking_id }}/cancel",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "refund_amount",
+              "value": "={{ $json.refund_amount }}"
+            },
+            {
+              "name": "cancellation_fee",
+              "value": "={{ $json.cancellation_fee }}"
+            },
+            {
+              "name": "reason",
+              "value": "={{ $json.cancellation_reason }}"
+            }
+          ]
+        }
+      },
+      "id": "api-cancel",
+      "name": "Update Booking DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@actionflow.ai",
+        "toEmail": "={{ $json.customer_email }}",
+        "subject": "❌ Rezervasyon İptali - {{ $json.pnr }}",
+        "emailType": "html",
+        "html": "={{ $json.html_email }}",
+        "options": {}
+      },
+      "id": "send-cancel-email",
+      "name": "Send Cancellation Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.refund_amount }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "if-refund",
+      "name": "Has Refund?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/refunds/process",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "booking_id",
+              "value": "={{ $json.booking_id }}"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.refund_amount }}"
+            },
+            {
+              "name": "currency",
+              "value": "={{ $json.currency }}"
+            }
+          ]
+        }
+      },
+      "id": "process-refund",
+      "name": "Process Refund",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "completed_no_refund"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-no-refund",
+      "name": "Set No Refund Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Cancellation": {
+      "main": [
+        [
+          {
+            "node": "Calculate Refund",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Refund": {
+      "main": [
+        [
+          {
+            "node": "Update Booking DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Booking DB": {
+      "main": [
+        [
+          {
+            "node": "Send Cancellation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Cancellation Email": {
+      "main": [
+        [
+          {
+            "node": "Has Refund?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Refund?": {
+      "main": [
+        [
+          {
+            "node": "Process Refund",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set No Refund Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "ActionFlow"
+    },
+    {
+      "name": "Cancellation"
+    },
+    {
+      "name": "Refund"
+    }
+  ]
+}

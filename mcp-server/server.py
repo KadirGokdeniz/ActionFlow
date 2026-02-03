@@ -4,352 +4,71 @@ HTTP üzerinden erişilebilir, production-ready MCP Server
 
 Bu server, LLM'lerin (Claude, GPT, vb.) ActionFlow backend'indeki
 işlevleri tool olarak kullanmasını sağlar.
+
+Mimari:
+    Client (Orchestrator) → MCP Server → Backend API → Amadeus/Database
 """
 
 import os
 import json
 import asyncio
-import httpx
+import uuid
+import logging
 from contextlib import asynccontextmanager
+
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from typing import Any
-import uuid
+
+# Tool registry import
+from tools import TOOLS, TOOL_FUNCTIONS, tool_exists
 
 load_dotenv()
 
-# Backend URL (Docker network içinde)
+# ═══════════════════════════════════════════════════════════════════
+# CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════
+
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
+MCP_PORT = int(os.getenv("MCP_PORT", "3000"))
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-# HTTP client
-http_client = None
+# Logging setup
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("MCP-Server")
 
-
-# ═══════════════════════════════════════════════════════════════════
-# TOOL TANIMLARI
-# ═══════════════════════════════════════════════════════════════════
-
-TOOLS = [
-    {
-        "name": "search_hotels",
-        "description": "Belirtilen şehirde otel arar. Şehir kodu IATA formatında olmalı (PAR=Paris, IST=İstanbul, AMS=Amsterdam, LON=Londra gibi).",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "city_code": {
-                    "type": "string",
-                    "description": "IATA şehir kodu (örn: PAR, IST, LON, AMS)"
-                },
-                "radius": {
-                    "type": "integer",
-                    "description": "Arama yarıçapı km cinsinden (varsayılan: 5)",
-                    "default": 5
-                }
-            },
-            "required": ["city_code"]
-        }
-    },
-    {
-        "name": "get_hotel_offers",
-        "description": "Belirli oteller için fiyat ve müsaitlik bilgisi alır. Tarihler YYYY-MM-DD formatında olmalı.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "hotel_ids": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Otel ID listesi (en fazla 20)"
-                },
-                "check_in": {
-                    "type": "string",
-                    "description": "Giriş tarihi (YYYY-MM-DD)"
-                },
-                "check_out": {
-                    "type": "string",
-                    "description": "Çıkış tarihi (YYYY-MM-DD)"
-                },
-                "adults": {
-                    "type": "integer",
-                    "description": "Yetişkin sayısı (varsayılan: 1)",
-                    "default": 1
-                }
-            },
-            "required": ["hotel_ids", "check_in", "check_out"]
-        }
-    },
-    {
-        "name": "search_flights",
-        "description": "İki şehir arasında uçuş arar. Şehir kodları IATA formatında olmalı.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "origin": {
-                    "type": "string",
-                    "description": "Kalkış şehri IATA kodu (örn: IST)"
-                },
-                "destination": {
-                    "type": "string",
-                    "description": "Varış şehri IATA kodu (örn: PAR)"
-                },
-                "date": {
-                    "type": "string",
-                    "description": "Uçuş tarihi (YYYY-MM-DD)"
-                },
-                "adults": {
-                    "type": "integer",
-                    "description": "Yolcu sayısı (varsayılan: 1)",
-                    "default": 1
-                },
-                "return_date": {
-                    "type": "string",
-                    "description": "Dönüş tarihi (opsiyonel, YYYY-MM-DD)"
-                }
-            },
-            "required": ["origin", "destination", "date"]
-        }
-    },
-    {
-        "name": "get_user_bookings",
-        "description": "Kullanıcının mevcut rezervasyonlarını listeler.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "string",
-                    "description": "Kullanıcı ID"
-                }
-            },
-            "required": ["user_id"]
-        }
-    },
-    {
-        "name": "cancel_booking",
-        "description": "Bir rezervasyonu iptal eder. DİKKAT: Bu işlem geri alınamaz!",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "booking_id": {
-                    "type": "string",
-                    "description": "İptal edilecek rezervasyon ID"
-                },
-                "reason": {
-                    "type": "string",
-                    "description": "İptal nedeni (opsiyonel)"
-                }
-            },
-            "required": ["booking_id"]
-        }
-    },
-    {
-        "name": "search_policies",
-        "description": "İptal, iade, bagaj gibi politikaları arar.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Arama sorgusu (örn: 'iptal politikası', 'bagaj hakkı')"
-                },
-                "category": {
-                    "type": "string",
-                    "description": "Kategori filtresi (opsiyonel: cancellation, refund, baggage, check-in)"
-                }
-            },
-            "required": ["query"]
-        }
-    }
-]
+# Global HTTP client
+http_client: httpx.AsyncClient = None
 
 
 # ═══════════════════════════════════════════════════════════════════
-# TOOL UYGULAMALARI
-# ═══════════════════════════════════════════════════════════════════
-
-async def search_hotels(city_code: str, radius: int = 5) -> dict:
-    """Şehirde otel ara"""
-    try:
-        response = await http_client.get(
-            f"/hotels/search/city/{city_code.upper()}",
-            params={"radius": radius}
-        )
-        response.raise_for_status()
-        data = response.json()
-        
-        hotels = data.get("hotels", [])[:10]
-        return {
-            "success": True,
-            "city": city_code.upper(),
-            "count": data.get("count", 0),
-            "hotels": [
-                {
-                    "id": h.get("hotelId"),
-                    "name": h.get("name"),
-                    "distance": h.get("distance", {}).get("value"),
-                }
-                for h in hotels
-            ]
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-async def get_hotel_offers(hotel_ids: list, check_in: str, check_out: str, adults: int = 1) -> dict:
-    """Otel fiyatlarını al"""
-    try:
-        response = await http_client.post(
-            "/hotels/offers",
-            json={
-                "hotel_ids": hotel_ids[:20],
-                "check_in": check_in,
-                "check_out": check_out,
-                "adults": adults,
-                "rooms": 1,
-                "currency": "EUR"
-            }
-        )
-        response.raise_for_status()
-        data = response.json()
-        
-        offers = data.get("offers", [])
-        return {
-            "success": True,
-            "check_in": check_in,
-            "check_out": check_out,
-            "count": len(offers),
-            "offers": [
-                {
-                    "hotel_id": o.get("hotel", {}).get("hotelId"),
-                    "hotel_name": o.get("hotel", {}).get("name"),
-                    "price": o.get("offers", [{}])[0].get("price", {}).get("total") if o.get("offers") else None,
-                    "currency": o.get("offers", [{}])[0].get("price", {}).get("currency") if o.get("offers") else None,
-                }
-                for o in offers
-            ]
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-async def search_flights(origin: str, destination: str, date: str, adults: int = 1, return_date: str = None) -> dict:
-    """Uçuş ara"""
-    try:
-        params = {
-            "origin": origin.upper(),
-            "destination": destination.upper(),
-            "date": date,
-            "adults": adults,
-            "max_results": 5
-        }
-        if return_date:
-            params["return_date"] = return_date
-            
-        response = await http_client.get("/flights/search", params=params)
-        response.raise_for_status()
-        data = response.json()
-        
-        flights = data.get("flights", [])
-        return {
-            "success": True,
-            "route": f"{origin.upper()} → {destination.upper()}",
-            "date": date,
-            "count": data.get("count", 0),
-            "cheapest": data.get("cheapest"),
-            "flights": [
-                {
-                    "price": f.get("price", {}).get("total"),
-                    "currency": f.get("price", {}).get("currency"),
-                    "duration": f.get("itineraries", [{}])[0].get("duration") if f.get("itineraries") else None,
-                    "stops": len(f.get("itineraries", [{}])[0].get("segments", [])) - 1 if f.get("itineraries") else 0
-                }
-                for f in flights[:5]
-            ]
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-async def get_user_bookings(user_id: str) -> dict:
-    """Kullanıcının rezervasyonlarını al"""
-    try:
-        response = await http_client.get(f"/users/{user_id}/bookings")
-        response.raise_for_status()
-        data = response.json()
-        
-        return {
-            "success": True,
-            "user_id": user_id,
-            "count": data.get("count", 0),
-            "bookings": data.get("bookings", [])
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-async def cancel_booking(booking_id: str, reason: str = None) -> dict:
-    """Rezervasyon iptal et"""
-    try:
-        response = await http_client.delete(f"/flights/orders/{booking_id}")
-        response.raise_for_status()
-        
-        return {
-            "success": True,
-            "booking_id": booking_id,
-            "status": "cancelled",
-            "reason": reason,
-            "message": "Rezervasyon başarıyla iptal edildi."
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-async def search_policies(query: str, category: str = None) -> dict:
-    """Politika ara"""
-    try:
-        url = f"/policies/search/{query}"
-        params = {}
-        if category:
-            params["category"] = category
-            
-        response = await http_client.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-        
-        return {
-            "success": True,
-            "query": query,
-            "count": data.get("count", 0),
-            "results": data.get("results", [])
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-# Tool fonksiyonlarını eşle
-TOOL_FUNCTIONS = {
-    "search_hotels": search_hotels,
-    "get_hotel_offers": get_hotel_offers,
-    "search_flights": search_flights,
-    "get_user_bookings": get_user_bookings,
-    "cancel_booking": cancel_booking,
-    "search_policies": search_policies,
-}
-
-
-# ═══════════════════════════════════════════════════════════════════
-# FASTAPI APP
+# FASTAPI APP LIFECYCLE
 # ═══════════════════════════════════════════════════════════════════
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup ve shutdown işlemleri"""
     global http_client
-    http_client = httpx.AsyncClient(base_url=BACKEND_URL, timeout=30.0)
-    print(f"MCP Server başlatıldı. Backend: {BACKEND_URL}")
+    
+    # Startup
+    http_client = httpx.AsyncClient(
+        base_url=BACKEND_URL,
+        timeout=30.0,
+        limits=httpx.Limits(max_connections=20, max_keepalive_connections=5)
+    )
+    logger.info(f"✅ MCP Server started. Backend: {BACKEND_URL}")
+    logger.info(f"📦 Loaded {len(TOOLS)} tools: {[t['name'] for t in TOOLS]}")
+    
     yield
+    
+    # Shutdown
     await http_client.aclose()
-    print("MCP Server kapatıldı.")
+    logger.info("🛑 MCP Server stopped")
 
 
 app = FastAPI(
@@ -369,7 +88,7 @@ app.add_middleware(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MCP PROTOCOL ENDPOINTS
+# HEALTH & INFO ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════
 
 @app.get("/")
@@ -380,36 +99,52 @@ async def root():
         "version": "1.0.0",
         "protocol": "MCP over SSE",
         "tools_count": len(TOOLS),
+        "tools": [t["name"] for t in TOOLS],
         "backend": BACKEND_URL
     }
 
 
 @app.get("/health")
 async def health():
-    """Health check"""
+    """Health check - backend bağlantısını da kontrol eder"""
+    backend_status = "unknown"
+    backend_latency = None
+    
     try:
+        import time
+        start = time.time()
         response = await http_client.get("/health")
+        backend_latency = round((time.time() - start) * 1000, 2)
         backend_status = "connected" if response.status_code == 200 else "error"
-    except:
-        backend_status = "disconnected"
+    except Exception as e:
+        backend_status = f"disconnected: {str(e)}"
     
     return {
         "status": "healthy",
-        "backend": backend_status
+        "backend": {
+            "status": backend_status,
+            "url": BACKEND_URL,
+            "latency_ms": backend_latency
+        },
+        "tools_loaded": len(TOOLS)
     }
 
 
+# ═══════════════════════════════════════════════════════════════════
+# MCP SSE ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════
+
 @app.get("/sse")
 async def sse_endpoint(request: Request):
-    """SSE endpoint - MCP Inspector bu endpoint'e bağlanır"""
-    
+    """SSE bağlantısını açar (MCP protocol)"""
     async def event_generator():
-        # İlk bağlantıda server info gönder
-        yield f"data: {json.dumps({'type': 'connection', 'status': 'connected'})}\n\n"
+        # Bağlantı kurulduğunda endpoint bilgisini gönder
+        yield f"event: endpoint\ndata: /sse\n\n"
         
-        # Bağlantıyı açık tut
+        # Keep-alive ping loop
         while True:
             if await request.is_disconnected():
+                logger.info("SSE client disconnected")
                 break
             await asyncio.sleep(30)
             yield f"data: {json.dumps({'type': 'ping'})}\n\n"
@@ -420,24 +155,48 @@ async def sse_endpoint(request: Request):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Nginx buffering'i devre dışı bırak
         }
     )
 
 
+@app.post("/sse")
+async def sse_post_handler(request: Request):
+    """SSE üzerinden gelen mesajları handle eder"""
+    return await handle_mcp_message(request)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# MCP MESSAGE HANDLER
+# ═══════════════════════════════════════════════════════════════════
+
 @app.post("/message")
 @app.post("/mcp/message")
-async def handle_message(request: Request):
-    """MCP mesajlarını işle"""
+async def handle_mcp_message(request: Request):
+    """
+    MCP JSON-RPC mesajlarını işler
+    
+    Desteklenen metodlar:
+    - initialize: Protokol handshake
+    - tools/list: Tool listesini döndür
+    - tools/call: Tool çağır
+    - notifications/initialized: Client hazır bildirimi
+    """
     try:
         body = await request.json()
-    except:
-        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+    except json.JSONDecodeError:
+        return JSONResponse(
+            {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}},
+            status_code=400
+        )
     
     method = body.get("method", "")
     params = body.get("params", {})
     msg_id = body.get("id", str(uuid.uuid4()))
     
-    # Initialize
+    logger.debug(f"MCP Request: {method} (id={msg_id})")
+    
+    # ─────────────── INITIALIZE ───────────────
     if method == "initialize":
         return JSONResponse({
             "jsonrpc": "2.0",
@@ -454,7 +213,7 @@ async def handle_message(request: Request):
             }
         })
     
-    # List tools
+    # ─────────────── TOOLS/LIST ───────────────
     elif method == "tools/list":
         return JSONResponse({
             "jsonrpc": "2.0",
@@ -464,12 +223,14 @@ async def handle_message(request: Request):
             }
         })
     
-    # Call tool
+    # ─────────────── TOOLS/CALL ───────────────
     elif method == "tools/call":
         tool_name = params.get("name")
         arguments = params.get("arguments", {})
         
-        if tool_name not in TOOL_FUNCTIONS:
+        # Tool var mı kontrol et
+        if not tool_exists(tool_name):
+            logger.warning(f"Tool not found: {tool_name}")
             return JSONResponse({
                 "jsonrpc": "2.0",
                 "id": msg_id,
@@ -479,8 +240,16 @@ async def handle_message(request: Request):
                 }
             })
         
+        # Tool'u çalıştır
         try:
-            result = await TOOL_FUNCTIONS[tool_name](**arguments)
+            logger.info(f"🔧 Calling tool: {tool_name} with args: {arguments}")
+            
+            # HTTP client'ı inject et
+            tool_func = TOOL_FUNCTIONS[tool_name]
+            result = await tool_func(**arguments, http_client=http_client)
+            
+            logger.info(f"✅ Tool {tool_name} completed successfully")
+            
             return JSONResponse({
                 "jsonrpc": "2.0",
                 "id": msg_id,
@@ -493,22 +262,37 @@ async def handle_message(request: Request):
                     ]
                 }
             })
+            
+        except TypeError as e:
+            # Argüman hatası
+            logger.error(f"Tool argument error: {e}")
+            return JSONResponse({
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "error": {
+                    "code": -32602,
+                    "message": f"Invalid params: {str(e)}"
+                }
+            })
         except Exception as e:
+            logger.error(f"Tool execution error: {e}")
             return JSONResponse({
                 "jsonrpc": "2.0",
                 "id": msg_id,
                 "error": {
                     "code": -32603,
-                    "message": str(e)
+                    "message": f"Internal error: {str(e)}"
                 }
             })
     
-    # Notifications
+    # ─────────────── NOTIFICATIONS ───────────────
     elif method == "notifications/initialized":
+        logger.info("Client initialized notification received")
         return JSONResponse({"jsonrpc": "2.0", "id": msg_id, "result": {}})
     
-    # Unknown method
+    # ─────────────── UNKNOWN METHOD ───────────────
     else:
+        logger.warning(f"Unknown method: {method}")
         return JSONResponse({
             "jsonrpc": "2.0",
             "id": msg_id,
@@ -520,19 +304,34 @@ async def handle_message(request: Request):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# DOĞRUDAN TEST ENDPOINT'LERİ
+# DIRECT TEST ENDPOINTS (Development/Debug)
 # ═══════════════════════════════════════════════════════════════════
 
 @app.get("/tools")
 async def list_tools():
-    """Tool listesini döndür (test için)"""
-    return {"tools": TOOLS}
+    """Tool listesini döndür (debug için)"""
+    return {
+        "count": len(TOOLS),
+        "tools": TOOLS
+    }
 
 
-@app.post("/tools/{tool_name}")
-async def call_tool(tool_name: str, request: Request):
-    """Tool'u çağır (test için)"""
-    if tool_name not in TOOL_FUNCTIONS:
+@app.get("/tools/{tool_name}")
+async def get_tool_info(tool_name: str):
+    """Tek bir tool'un bilgisini döndür"""
+    for tool in TOOLS:
+        if tool["name"] == tool_name:
+            return tool
+    return JSONResponse({"error": f"Tool not found: {tool_name}"}, status_code=404)
+
+
+@app.post("/tools/{tool_name}/test")
+async def test_tool(tool_name: str, request: Request):
+    """
+    Tool'u direkt test et (MCP protokolü olmadan)
+    Debug ve development için kullanışlı
+    """
+    if not tool_exists(tool_name):
         return JSONResponse({"error": f"Tool not found: {tool_name}"}, status_code=404)
     
     try:
@@ -541,7 +340,8 @@ async def call_tool(tool_name: str, request: Request):
         body = {}
     
     try:
-        result = await TOOL_FUNCTIONS[tool_name](**body)
+        tool_func = TOOL_FUNCTIONS[tool_name]
+        result = await tool_func(**body, http_client=http_client)
         return result
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -553,4 +353,10 @@ async def call_tool(tool_name: str, request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+    uvicorn.run(
+        "server:app",
+        host="0.0.0.0",
+        port=MCP_PORT,
+        reload=True,
+        log_level=LOG_LEVEL.lower()
+    )
