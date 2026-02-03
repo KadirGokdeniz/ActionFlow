@@ -3,7 +3,8 @@
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-orange)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20+%20pgvector-336791?logo=postgresql)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql)
+![Pinecone](https://img.shields.io/badge/Pinecone-Vector%20Database-00D4AA)
 ![n8n](https://img.shields.io/badge/n8n-Workflow%20Automation-EA4B71?logo=n8n)
 ![MCP](https://img.shields.io/badge/MCP-Tool%20Protocol-blueviolet)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker)
@@ -82,7 +83,7 @@ flowchart LR
     SUP --> SHARP["Intent Sharpener<br/>(Context Filler)"]
     SHARP --> SUP
 
-    SUP --> INFO["Info Agent (pgvector)"]
+    SUP --> INFO["Info Agent (Pinecone)"]
     INFO --> SUP
 
     SUP --> ACT["Action Agent (n8n)"]
@@ -110,7 +111,7 @@ flowchart LR
 | **LangGraph** | Agent Orchestration | Graph-based state machine vs simple chains. Handles conditional routing, parallel execution, and conversation cycles needed for multi-step bookings. |
 | **MCP** | Tool Protocol | Standardized tool interface vs custom integrations. LLM-agnostic design — switch providers without rewriting tool definitions. |
 | **n8n** | Workflow Automation | Self-hosted, no per-execution cost vs Zapier. Visual debugging for complex booking flows. 400+ integrations including payment gateways. |
-| **pgvector** | Policy Search | Single database for relational + vector data. Handles policy-scale datasets efficiently. |
+| **Pinecone** | Policy Search | Managed vector database vs self-hosted. Production-ready semantic search with zero infrastructure overhead. Handles policy-scale datasets efficiently. |
 | **Redis** | Session State | Sub-ms latency for conversation context. Critical for channel-switching scenarios (start on web, continue on WhatsApp). |
 | **Twilio** | WhatsApp + SMS | Industry standard for travel notifications. Delivery receipts, media support, global reach. |
 | **AssemblyAI** | STT | Strong multilingual accuracy (Turkish/English). Handles airport background noise. Real-time streaming. |
@@ -128,7 +129,7 @@ flowchart LR
 
 ## Core Capabilities
 
-**Multi-Agent RAG**: Policy questions answered with source attribution. 
+**Multi-Agent RAG**: Policy questions answered with source attribution. 
 
 **Automated Actions**: Single message triggers parallel workflows. Cancellation + refund + confirmation execute simultaneously via n8n. No sequential bottlenecks.
 
@@ -156,6 +157,7 @@ cp .env.example .env
 Required API keys:
 ```env
 OPENAI_API_KEY=your_key_here
+PINECONE_API_KEY=your_key_here
 TWILIO_ACCOUNT_SID=your_sid_here
 TWILIO_AUTH_TOKEN=your_token_here
 ASSEMBLYAI_API_KEY=your_key_here
