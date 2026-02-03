@@ -22,10 +22,6 @@ Multi-agent architecture handles the full journey: policy questions, reservation
 
 One message. Multiple actions. No waiting.
 
-## Demo Video
-
-🎬 *Recording in progress — Phase 1 completion*
-
 ## Demo Scenario
 
 ```
