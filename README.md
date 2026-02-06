@@ -120,7 +120,7 @@ The Supervisor routes every message by intent and urgency. Agents operate indepe
 | **LangGraph** | Graph-based state machine handles conditional routing and conversation cycles that simple chains can't |
 | **MCP** | LLM-agnostic tool protocol — switch providers without rewriting integrations |
 | **n8n** | Self-hosted, no per-execution cost (vs Zapier). Visual debugging for complex booking flows |
-| **Pinecone** | Managed vector DB with zero infra overhead. Sufficient for policy-scale datasets |
+| **Pinecone** |Production-ready semantic search with zero infra management — no index tuning, no cluster scaling |
 | **Redis** | Sub-ms latency for session state. Enables cross-channel continuity |
 | **AssemblyAI / ElevenLabs** | Strong Turkish + English accuracy. Handles airport background noise |
 
