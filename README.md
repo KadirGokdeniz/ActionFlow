@@ -19,8 +19,8 @@ ActionFlow **understands, decides, and executes**: policy lookup, cancellation, 
 
 | Metric | Target | Method |
 |--------|--------|--------|
-| End-to-end response | < 3s | LangGraph routing + parallel n8n workflows |
-| Voice latency (STT→TTS) | < 500ms | AssemblyAI streaming + ElevenLabs |
+| End-to-end response | < 10s | LangGraph routing + parallel n8n workflows |
+| Voice latency (STT→TTS) | < 2s | AssemblyAI streaming + ElevenLabs |
 | Policy retrieval accuracy | > 90% | Pinecone semantic search with source attribution |
 | Channel continuity | 100% | Redis session state across Web / WhatsApp / Voice |
 
