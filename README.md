@@ -15,17 +15,6 @@ Travel support averages [2–12 hours response time](https://www.mightytravels.c
 
 ActionFlow **understands, decides, and executes**: policy lookup, cancellation, refund, and rebooking from a single message. One conversation. Multiple parallel actions. No waiting.
 
-## Performance Targets
-
-| Metric | Target | Method |
-|--------|--------|--------|
-| End-to-end response | < 10s | LangGraph routing + parallel n8n workflows |
-| Voice latency (STT→TTS) | < 2s | AssemblyAI streaming + ElevenLabs |
-| Policy retrieval accuracy | > 85% | Pinecone semantic search with source attribution |
-| Channel continuity | 100% | Redis session state across Web / WhatsApp / Voice |
-
-> **Note:** These are design targets based on component-level benchmarks, not production measurements yet. Production metrics will be published after pilot deployment.
-
 ## Demo
 
 ```
