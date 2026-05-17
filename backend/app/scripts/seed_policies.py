@@ -1,9 +1,9 @@
 """
 ActionFlow - Seed Policies
-THY, Pegasus ve genel seyahat politikaları (Türkçe & İngilizce)
+THY, Pegasus ve genel seyahat politikalarÄ± (TÃ¼rkÃ§e & Ä°ngilizce)
 
-Kullanım:
-    python -m scripts.seed_policies
+KullanÄ±m:
+    python -m app.scripts.seed_policies
     
     veya
     
@@ -18,45 +18,45 @@ from typing import List, Dict, Any
 logger = logging.getLogger("ActionFlow-SeedPolicies")
 
 
-# ═══════════════════════════════════════════════════════════════════
-# TURKISH AIRLINES (THY) POLİTİKALARI
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# TURKISH AIRLINES (THY) POLÄ°TÄ°KALARI
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 THY_POLICIES = [
-    # İptal Politikaları
+    # Ä°ptal PolitikalarÄ±
     {
-        "title": "Turkish Airlines - İptal ve Değişiklik Politikası",
+        "title": "Turkish Airlines - Ä°ptal ve DeÄŸiÅŸiklik PolitikasÄ±",
         "title_en": "Turkish Airlines - Cancellation and Change Policy",
         "category": "cancellation",
         "provider": "Turkish Airlines",
         "content": """
-TÜRK HAVA YOLLARI İPTAL VE DEĞİŞİKLİK KURALLARI
+TÃœRK HAVA YOLLARI Ä°PTAL VE DEÄÄ°ÅÄ°KLÄ°K KURALLARI
 
-1. ESNEK BİLETLER (Business Class, Full Flex Economy)
-- Ücretsiz iptal: Uçuştan 24 saat öncesine kadar
-- Ücretsiz değişiklik: Sınırsız
-- İade süresi: 7-14 iş günü
+1. ESNEK BÄ°LETLER (Business Class, Full Flex Economy)
+- Ãœcretsiz iptal: UÃ§uÅŸtan 24 saat Ã¶ncesine kadar
+- Ãœcretsiz deÄŸiÅŸiklik: SÄ±nÄ±rsÄ±z
+- Ä°ade sÃ¼resi: 7-14 iÅŸ gÃ¼nÃ¼
 
-2. STANDART BİLETLER (Economy Flex)
-- İptal ücreti: Bilet bedelinin %25'i
-- Değişiklik ücreti: 50-100 EUR + fark
-- Son iptal: Uçuştan 4 saat önce
+2. STANDART BÄ°LETLER (Economy Flex)
+- Ä°ptal Ã¼creti: Bilet bedelinin %25'i
+- DeÄŸiÅŸiklik Ã¼creti: 50-100 EUR + fark
+- Son iptal: UÃ§uÅŸtan 4 saat Ã¶nce
 
-3. PROMOSYONlu BİLETLER (Economy Light, Promo)
-- İptal: İade yok, sadece vergiler iade edilir
-- Değişiklik: Mümkün değil veya yüksek ücret
-- Açık bilete çevirme: Mümkün değil
+3. PROMOSYONlu BÄ°LETLER (Economy Light, Promo)
+- Ä°ptal: Ä°ade yok, sadece vergiler iade edilir
+- DeÄŸiÅŸiklik: MÃ¼mkÃ¼n deÄŸil veya yÃ¼ksek Ã¼cret
+- AÃ§Ä±k bilete Ã§evirme: MÃ¼mkÃ¼n deÄŸil
 
-4. HASTALIK / ÖLÜM DURUMU
-- Tam iade mümkün (doktor raporu/ölüm belgesi ile)
-- 72 saat içinde başvuru gerekli
+4. HASTALIK / Ã–LÃœM DURUMU
+- Tam iade mÃ¼mkÃ¼n (doktor raporu/Ã¶lÃ¼m belgesi ile)
+- 72 saat iÃ§inde baÅŸvuru gerekli
 
-5. UÇUŞ İPTALİ (Havayolu kaynaklı)
-- Tam iade veya ücretsiz değişiklik hakkı
-- Tazminat: EC 261/2004 kapsamında (250-600 EUR)
+5. UÃ‡UÅ Ä°PTALÄ° (Havayolu kaynaklÄ±)
+- Tam iade veya Ã¼cretsiz deÄŸiÅŸiklik hakkÄ±
+- Tazminat: EC 261/2004 kapsamÄ±nda (250-600 EUR)
 
-İletişim: +90 212 444 0 849
-Online işlem: turkishairlines.com/manage-booking
+Ä°letiÅŸim: +90 212 444 0 849
+Online iÅŸlem: turkishairlines.com/manage-booking
         """,
         "content_en": """
 TURKISH AIRLINES CANCELLATION AND CHANGE RULES
@@ -90,55 +90,55 @@ Online: turkishairlines.com/manage-booking
         "source_url": "https://www.turkishairlines.com/en-int/any-questions/cancellation-and-refund/"
     },
     
-    # Bagaj Politikası
+    # Bagaj PolitikasÄ±
     {
-        "title": "Turkish Airlines - Bagaj Hakkı ve Kuralları",
+        "title": "Turkish Airlines - Bagaj HakkÄ± ve KurallarÄ±",
         "title_en": "Turkish Airlines - Baggage Allowance and Rules",
         "category": "baggage",
         "provider": "Turkish Airlines",
         "content": """
-TÜRK HAVA YOLLARI BAGAJ KURALLARI
+TÃœRK HAVA YOLLARI BAGAJ KURALLARI
 
-1. KABİN BAGAJI (Tüm yolcular)
-- 1 adet el bagajı: 8 kg, 55x40x23 cm
-- 1 adet kişisel eşya: Laptop çantası veya el çantası
-- Business Class: 2 adet kabin bagajı (toplam 16 kg)
+1. KABÄ°N BAGAJI (TÃ¼m yolcular)
+- 1 adet el bagajÄ±: 8 kg, 55x40x23 cm
+- 1 adet kiÅŸisel eÅŸya: Laptop Ã§antasÄ± veya el Ã§antasÄ±
+- Business Class: 2 adet kabin bagajÄ± (toplam 16 kg)
 
 2. KAYITLI BAGAJ HAKKI
 
-Yurt İçi Uçuşlar:
+Yurt Ä°Ã§i UÃ§uÅŸlar:
 - Economy Light: 15 kg
 - Economy: 20 kg
 - Economy Flex: 25 kg
-- Business: 32 kg (2 parça)
+- Business: 32 kg (2 parÃ§a)
 
-Yurt Dışı Uçuşlar (Avrupa):
+Yurt DÄ±ÅŸÄ± UÃ§uÅŸlar (Avrupa):
 - Economy Light: 20 kg
 - Economy: 23 kg
 - Economy Flex: 30 kg
-- Business: 32 kg (2 parça)
+- Business: 32 kg (2 parÃ§a)
 
-Amerika Uçuşları:
+Amerika UÃ§uÅŸlarÄ±:
 - Economy: 2 x 23 kg
 - Business: 2 x 32 kg
 
-3. FAZLA BAGAJ ÜCRETLERİ
-- Yurt içi: Kg başına 3 EUR
-- Avrupa: Kg başına 8 EUR
-- Uzak mesafe: Kg başına 15 EUR
-- Ekstra parça: 60-150 EUR
+3. FAZLA BAGAJ ÃœCRETLERÄ°
+- Yurt iÃ§i: Kg baÅŸÄ±na 3 EUR
+- Avrupa: Kg baÅŸÄ±na 8 EUR
+- Uzak mesafe: Kg baÅŸÄ±na 15 EUR
+- Ekstra parÃ§a: 60-150 EUR
 
-4. ÖZEL BAGAJ
-- Spor ekipmanı: 30-75 EUR
-- Müzik aleti: Kabin veya ek koltuk
+4. Ã–ZEL BAGAJ
+- Spor ekipmanÄ±: 30-75 EUR
+- MÃ¼zik aleti: Kabin veya ek koltuk
 - Evcil hayvan: 35-200 EUR (kabin/kargo)
 
 5. YASAK MADDELER
 - Pil ve powerbank: Sadece kabin (max 100Wh)
-- Sıvılar: 100ml, şeffaf poşet
-- Kesici aletler: Kayıtlı bagajda
+- SÄ±vÄ±lar: 100ml, ÅŸeffaf poÅŸet
+- Kesici aletler: KayÄ±tlÄ± bagajda
 
-Miles&Smiles üyeleri ek bagaj hakkından yararlanır.
+Miles&Smiles Ã¼yeleri ek bagaj hakkÄ±ndan yararlanÄ±r.
         """,
         "content_en": """
 TURKISH AIRLINES BAGGAGE RULES
@@ -187,46 +187,46 @@ Miles&Smiles members get extra baggage allowance.
         "source_url": "https://www.turkishairlines.com/en-int/any-questions/baggage/"
     },
     
-    # İade Politikası
+    # Ä°ade PolitikasÄ±
     {
-        "title": "Turkish Airlines - İade Süreci ve Süreleri",
+        "title": "Turkish Airlines - Ä°ade SÃ¼reci ve SÃ¼releri",
         "title_en": "Turkish Airlines - Refund Process and Timeline",
         "category": "refund",
         "provider": "Turkish Airlines",
         "content": """
-TÜRK HAVA YOLLARI İADE SÜRECİ
+TÃœRK HAVA YOLLARI Ä°ADE SÃœRECÄ°
 
-1. İADE SÜRELERİ
-- Kredi kartı: 7-14 iş günü
-- Banka havalesi: 14-21 iş günü
-- Seyahat acentası: Acenta üzerinden (30 güne kadar)
+1. Ä°ADE SÃœRELERÄ°
+- Kredi kartÄ±: 7-14 iÅŸ gÃ¼nÃ¼
+- Banka havalesi: 14-21 iÅŸ gÃ¼nÃ¼
+- Seyahat acentasÄ±: Acenta Ã¼zerinden (30 gÃ¼ne kadar)
 
-2. İADE BAŞVURUSU
-- Online: turkishairlines.com → Rezervasyonlarım
-- Çağrı merkezi: +90 212 444 0 849
-- Havalimanı: THY satış ofisleri
+2. Ä°ADE BAÅVURUSU
+- Online: turkishairlines.com â†’ RezervasyonlarÄ±m
+- Ã‡aÄŸrÄ± merkezi: +90 212 444 0 849
+- HavalimanÄ±: THY satÄ±ÅŸ ofisleri
 
-3. İADE EDİLEN TUTARLAR
-- Bilet ücreti (iptal şartlarına göre)
-- Vergiler ve harçlar (tam iade)
-- Ek hizmetler (koltuk seçimi, bagaj - iade yok)
+3. Ä°ADE EDÄ°LEN TUTARLAR
+- Bilet Ã¼creti (iptal ÅŸartlarÄ±na gÃ¶re)
+- Vergiler ve harÃ§lar (tam iade)
+- Ek hizmetler (koltuk seÃ§imi, bagaj - iade yok)
 
 4. KESINTILER
-- İptal ücreti (bilet tipine göre)
-- İşlem ücreti: 25 EUR (bazı kanallar)
-- Kur farkı (yabancı para ile alımlarda)
+- Ä°ptal Ã¼creti (bilet tipine gÃ¶re)
+- Ä°ÅŸlem Ã¼creti: 25 EUR (bazÄ± kanallar)
+- Kur farkÄ± (yabancÄ± para ile alÄ±mlarda)
 
-5. AÇIK BİLET
-- 1 yıl geçerli
-- Fark ödemesi gerekebilir
-- Rota değişikliği ücrete tabi
+5. AÃ‡IK BÄ°LET
+- 1 yÄ±l geÃ§erli
+- Fark Ã¶demesi gerekebilir
+- Rota deÄŸiÅŸikliÄŸi Ã¼crete tabi
 
-6. VOUCHER SEÇENEĞİ
+6. VOUCHER SEÃ‡ENEÄÄ°
 - Bilet bedeli + %10 bonus
-- 1 yıl geçerli
-- Tüm THY uçuşlarında kullanılabilir
+- 1 yÄ±l geÃ§erli
+- TÃ¼m THY uÃ§uÅŸlarÄ±nda kullanÄ±labilir
 
-İade durumu takibi: turkishairlines.com/refund-status
+Ä°ade durumu takibi: turkishairlines.com/refund-status
         """,
         "content_en": """
 TURKISH AIRLINES REFUND PROCESS
@@ -237,7 +237,7 @@ TURKISH AIRLINES REFUND PROCESS
 - Travel agency: Through agency (up to 30 days)
 
 2. REFUND APPLICATION
-- Online: turkishairlines.com → My Bookings
+- Online: turkishairlines.com â†’ My Bookings
 - Call center: +90 212 444 0 849
 - Airport: THY sales offices
 
@@ -267,50 +267,50 @@ Refund status tracking: turkishairlines.com/refund-status
 ]
 
 
-# ═══════════════════════════════════════════════════════════════════
-# PEGASUS POLİTİKALARI
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# PEGASUS POLÄ°TÄ°KALARI
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 PEGASUS_POLICIES = [
     {
-        "title": "Pegasus Airlines - İptal ve Değişiklik Kuralları",
+        "title": "Pegasus Airlines - Ä°ptal ve DeÄŸiÅŸiklik KurallarÄ±",
         "title_en": "Pegasus Airlines - Cancellation and Change Rules",
         "category": "cancellation",
         "provider": "Pegasus Airlines",
         "content": """
-PEGASUS HAVA YOLLARI İPTAL VE DEĞİŞİKLİK KURALLARI
+PEGASUS HAVA YOLLARI Ä°PTAL VE DEÄÄ°ÅÄ°KLÄ°K KURALLARI
 
 1. BASIC PAKET
-- İptal: İade yok (sadece vergiler)
-- Değişiklik: Mümkün değil
-- Koltuk seçimi: Ücretli
+- Ä°ptal: Ä°ade yok (sadece vergiler)
+- DeÄŸiÅŸiklik: MÃ¼mkÃ¼n deÄŸil
+- Koltuk seÃ§imi: Ãœcretli
 
 2. ESSENTIALS PAKET
-- İptal: %50 kesinti ile iade
-- Değişiklik: 1 kez ücretsiz (uçuştan 3 gün önce)
+- Ä°ptal: %50 kesinti ile iade
+- DeÄŸiÅŸiklik: 1 kez Ã¼cretsiz (uÃ§uÅŸtan 3 gÃ¼n Ã¶nce)
 - 15 kg bagaj dahil
 
 3. ADVANTAGE PAKET
-- İptal: %25 kesinti ile iade
-- Değişiklik: Sınırsız ücretsiz
-- 20 kg bagaj + koltuk seçimi dahil
+- Ä°ptal: %25 kesinti ile iade
+- DeÄŸiÅŸiklik: SÄ±nÄ±rsÄ±z Ã¼cretsiz
+- 20 kg bagaj + koltuk seÃ§imi dahil
 
-4. DEĞİŞİKLİK ÜCRETLERİ (Basic için)
-- Yurt içi: 50 TL + fark
-- Yurt dışı: 25 EUR + fark
-- İsim düzeltme: 50 TL/EUR
+4. DEÄÄ°ÅÄ°KLÄ°K ÃœCRETLERÄ° (Basic iÃ§in)
+- Yurt iÃ§i: 50 TL + fark
+- Yurt dÄ±ÅŸÄ±: 25 EUR + fark
+- Ä°sim dÃ¼zeltme: 50 TL/EUR
 
-5. SON DAKİKA DEĞİŞİKLİK
-- Uçuştan 3 saat önceye kadar mümkün
-- Ek ücret uygulanabilir
+5. SON DAKÄ°KA DEÄÄ°ÅÄ°KLÄ°K
+- UÃ§uÅŸtan 3 saat Ã¶nceye kadar mÃ¼mkÃ¼n
+- Ek Ã¼cret uygulanabilir
 
-6. FLEXPERK (Ek satın alma)
-- 99 TL ile değişiklik hakkı
-- Uçuştan 3 saat önceye kadar
-- Bilet alırken eklenmeli
+6. FLEXPERK (Ek satÄ±n alma)
+- 99 TL ile deÄŸiÅŸiklik hakkÄ±
+- UÃ§uÅŸtan 3 saat Ã¶nceye kadar
+- Bilet alÄ±rken eklenmeli
 
-Online işlem: flypgs.com/manage-booking
-Çağrı merkezi: 0888 228 1212
+Online iÅŸlem: flypgs.com/manage-booking
+Ã‡aÄŸrÄ± merkezi: 0888 228 1212
         """,
         "content_en": """
 PEGASUS AIRLINES CANCELLATION AND CHANGE RULES
@@ -351,48 +351,48 @@ Call center: 0888 228 1212
     },
     
     {
-        "title": "Pegasus Airlines - Bagaj Kuralları ve Ücretleri",
+        "title": "Pegasus Airlines - Bagaj KurallarÄ± ve Ãœcretleri",
         "title_en": "Pegasus Airlines - Baggage Rules and Fees",
         "category": "baggage",
         "provider": "Pegasus Airlines",
         "content": """
-PEGASUS BAGAJ KURALLARI VE ÜCRETLERİ
+PEGASUS BAGAJ KURALLARI VE ÃœCRETLERÄ°
 
-1. KABİN BAGAJI (Tüm paketler)
+1. KABÄ°N BAGAJI (TÃ¼m paketler)
 - 1 adet: 8 kg, 55x40x20 cm
-- 1 kişisel eşya: 40x30x15 cm
+- 1 kiÅŸisel eÅŸya: 40x30x15 cm
 - Toplam: 8 kg
 
-2. KAYITLI BAGAJ (Paketlere göre)
+2. KAYITLI BAGAJ (Paketlere gÃ¶re)
 
-Basic Paket: Bagaj dahil değil
-- Yurt içi: 15 kg = 99 TL / 20 kg = 129 TL
-- Yurt dışı: 15 kg = 15 EUR / 20 kg = 20 EUR
-- Havalimanında: %50 daha pahalı!
+Basic Paket: Bagaj dahil deÄŸil
+- Yurt iÃ§i: 15 kg = 99 TL / 20 kg = 129 TL
+- Yurt dÄ±ÅŸÄ±: 15 kg = 15 EUR / 20 kg = 20 EUR
+- HavalimanÄ±nda: %50 daha pahalÄ±!
 
 Essentials Paket: 15 kg dahil
 Advantage Paket: 20 kg dahil
 
 3. FAZLA BAGAJ
-- Online önceden: 5 TL/kg (yurt içi)
-- Havalimanında: 10 TL/kg (yurt içi)
-- Yurt dışı: 3-8 EUR/kg
+- Online Ã¶nceden: 5 TL/kg (yurt iÃ§i)
+- HavalimanÄ±nda: 10 TL/kg (yurt iÃ§i)
+- Yurt dÄ±ÅŸÄ±: 3-8 EUR/kg
 
-4. EK PARÇA BAGAJ
-- 2. parça: 79-149 TL / 20-35 EUR
-- 3. parça: 129-199 TL / 30-50 EUR
+4. EK PARÃ‡A BAGAJ
+- 2. parÃ§a: 79-149 TL / 20-35 EUR
+- 3. parÃ§a: 129-199 TL / 30-50 EUR
 
-5. ÖZEL BAGAJ
+5. Ã–ZEL BAGAJ
 - Kayak/Snowboard: 30 EUR
 - Golf: 30 EUR
 - Bisiklet: 40 EUR
-- Sörf tahtası: 50 EUR
+- SÃ¶rf tahtasÄ±: 50 EUR
 - Evcil hayvan (kabin): 25-50 EUR
 
 6. PRO TIP
-- Bagajı online önceden alın (havalimanında 2x fiyat!)
-- BolBol üyeleri indirimli bagaj alabilir
-- Aile paketi: 30 kg paylaşımlı
+- BagajÄ± online Ã¶nceden alÄ±n (havalimanÄ±nda 2x fiyat!)
+- BolBol Ã¼yeleri indirimli bagaj alabilir
+- Aile paketi: 30 kg paylaÅŸÄ±mlÄ±
 
 Bagaj hesaplama: flypgs.com/baggage-calculator
         """,
@@ -442,48 +442,48 @@ Baggage calculator: flypgs.com/baggage-calculator
 ]
 
 
-# ═══════════════════════════════════════════════════════════════════
-# GENEL POLİTİKALAR
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# GENEL POLÄ°TÄ°KALAR
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 GENERAL_POLICIES = [
     {
-        "title": "Genel Otel İptal Politikası",
+        "title": "Genel Otel Ä°ptal PolitikasÄ±",
         "title_en": "General Hotel Cancellation Policy",
         "category": "cancellation",
         "provider": "general",
         "content": """
-OTEL İPTAL POLİTİKASI (GENEL KURALLAR)
+OTEL Ä°PTAL POLÄ°TÄ°KASI (GENEL KURALLAR)
 
-1. ÜCRETSİZ İPTAL
-- Çoğu otel: Check-in'den 24-48 saat önce ücretsiz
-- Booking.com "Ücretsiz iptal" ibareli: Belirtilen tarihe kadar
-- Expedia: Genellikle 2-3 gün öncesine kadar
+1. ÃœCRETSÄ°Z Ä°PTAL
+- Ã‡oÄŸu otel: Check-in'den 24-48 saat Ã¶nce Ã¼cretsiz
+- Booking.com "Ãœcretsiz iptal" ibareli: Belirtilen tarihe kadar
+- Expedia: Genellikle 2-3 gÃ¼n Ã¶ncesine kadar
 
-2. İPTAL ÜCRETLİ DURUMLAR
-- Son dakika iptal: 1 gecelik ücret
-- No-show (gelmeme): Tam ücret
-- İade edilemez rezervasyon: Hiçbir iade yok
+2. Ä°PTAL ÃœCRETLÄ° DURUMLAR
+- Son dakika iptal: 1 gecelik Ã¼cret
+- No-show (gelmeme): Tam Ã¼cret
+- Ä°ade edilemez rezervasyon: HiÃ§bir iade yok
 
-3. ÖZEL DÖNEMLER
-- Yılbaşı, bayram: Daha katı kurallar
-- Fuar dönemleri: İptal ücreti yüksek
-- Sezon: Daha uzun iptal süresi
+3. Ã–ZEL DÃ–NEMLER
+- YÄ±lbaÅŸÄ±, bayram: Daha katÄ± kurallar
+- Fuar dÃ¶nemleri: Ä°ptal Ã¼creti yÃ¼ksek
+- Sezon: Daha uzun iptal sÃ¼resi
 
-4. ÖDEME TİPİNE GÖRE
-- Otelde ödeme: İptal daha esnek
-- Ön ödemeli: İade zor veya yok
-- Kısmi ön ödeme: Ön ödeme kaybedilebilir
+4. Ã–DEME TÄ°PÄ°NE GÃ–RE
+- Otelde Ã¶deme: Ä°ptal daha esnek
+- Ã–n Ã¶demeli: Ä°ade zor veya yok
+- KÄ±smi Ã¶n Ã¶deme: Ã–n Ã¶deme kaybedilebilir
 
-5. NASIL İPTAL EDİLİR?
-- Online: Rezervasyon sitesi üzerinden
-- Telefon: Otel veya site müşteri hizmetleri
-- E-posta: Onay numarası ile
+5. NASIL Ä°PTAL EDÄ°LÄ°R?
+- Online: Rezervasyon sitesi Ã¼zerinden
+- Telefon: Otel veya site mÃ¼ÅŸteri hizmetleri
+- E-posta: Onay numarasÄ± ile
 
-6. TAVSİYELER
-- Rezervasyon yaparken iptal şartlarını okuyun
-- Ücretsiz iptal tarihi takvime not edin
-- Seyahat sigortası değerlendirin
+6. TAVSÄ°YELER
+- Rezervasyon yaparken iptal ÅŸartlarÄ±nÄ± okuyun
+- Ãœcretsiz iptal tarihi takvime not edin
+- Seyahat sigortasÄ± deÄŸerlendirin
         """,
         "content_en": """
 HOTEL CANCELLATION POLICY (GENERAL RULES)
@@ -521,49 +521,49 @@ HOTEL CANCELLATION POLICY (GENERAL RULES)
     },
     
     {
-        "title": "Uçuş Rötar ve İptal Hakları (AB/EC 261)",
+        "title": "UÃ§uÅŸ RÃ¶tar ve Ä°ptal HaklarÄ± (AB/EC 261)",
         "title_en": "Flight Delay and Cancellation Rights (EU/EC 261)",
         "category": "refund",
         "provider": "general",
         "content": """
-YOLCU HAKLARI - EC 261/2004 (AB DÜZENLEMESİ)
+YOLCU HAKLARI - EC 261/2004 (AB DÃœZENLEMESÄ°)
 
-Bu haklar AB kalkışlı veya AB havayolu ile AB varışlı uçuşlarda geçerlidir.
+Bu haklar AB kalkÄ±ÅŸlÄ± veya AB havayolu ile AB varÄ±ÅŸlÄ± uÃ§uÅŸlarda geÃ§erlidir.
 
-1. UÇUŞ İPTALİ TAZMİNATI
+1. UÃ‡UÅ Ä°PTALÄ° TAZMÄ°NATI
 - 1500 km'ye kadar: 250 EUR
 - 1500-3500 km: 400 EUR
-- 3500 km üzeri: 600 EUR
+- 3500 km Ã¼zeri: 600 EUR
 
-Şartlar:
-- 14 günden az önce bildirim
-- Olağanüstü koşullar (hava, grev) hariç
+Åartlar:
+- 14 gÃ¼nden az Ã¶nce bildirim
+- OlaÄŸanÃ¼stÃ¼ koÅŸullar (hava, grev) hariÃ§
 
-2. RÖTAR TAZMİNATI
-- 3+ saat rötar: İptal ile aynı tazminat
-- 5+ saat rötar: Tam iade hakkı
+2. RÃ–TAR TAZMÄ°NATI
+- 3+ saat rÃ¶tar: Ä°ptal ile aynÄ± tazminat
+- 5+ saat rÃ¶tar: Tam iade hakkÄ±
 
-3. BEKLEME SÜRESİNCE HAKLAR
-- 2+ saat: Yemek, içecek
+3. BEKLEME SÃœRESÄ°NCE HAKLAR
+- 2+ saat: Yemek, iÃ§ecek
 - 4+ saat: Otel + transfer
-- Ücretsiz iletişim (2 telefon/e-posta)
+- Ãœcretsiz iletiÅŸim (2 telefon/e-posta)
 
-4. OVERBOOKING (Fazla satış)
-- Gönüllü: Havayolu teklifi + tazminat
-- Zorunlu: Tam tazminat + alternatif uçuş
+4. OVERBOOKING (Fazla satÄ±ÅŸ)
+- GÃ¶nÃ¼llÃ¼: Havayolu teklifi + tazminat
+- Zorunlu: Tam tazminat + alternatif uÃ§uÅŸ
 
-5. BAGAJ GECİKMESİ
-- Günlük ihtiyaçlar: Havayolu karşılar
-- Max tazminat: ~1400 EUR (Montreal Sözleşmesi)
-- 21 gün sonra kayıp sayılır
+5. BAGAJ GECÄ°KMESÄ°
+- GÃ¼nlÃ¼k ihtiyaÃ§lar: Havayolu karÅŸÄ±lar
+- Max tazminat: ~1400 EUR (Montreal SÃ¶zleÅŸmesi)
+- 21 gÃ¼n sonra kayÄ±p sayÄ±lÄ±r
 
-6. BAŞVURU
-- Havayoluna direkt başvuru
-- 3 yıl içinde talep edilmeli
-- Red edilirse: Tüketici hakları kurumları
+6. BAÅVURU
+- Havayoluna direkt baÅŸvuru
+- 3 yÄ±l iÃ§inde talep edilmeli
+- Red edilirse: TÃ¼ketici haklarÄ± kurumlarÄ±
 
-Türkiye'de: SHGM (shgm.gov.tr)
-AB'de: Ulusal uygulama kurumları
+TÃ¼rkiye'de: SHGM (shgm.gov.tr)
+AB'de: Ulusal uygulama kurumlarÄ±
         """,
         "content_en": """
 PASSENGER RIGHTS - EC 261/2004 (EU REGULATION)
@@ -608,52 +608,52 @@ In EU: National enforcement bodies
     },
     
     {
-        "title": "Check-in Kuralları ve Saatleri",
+        "title": "Check-in KurallarÄ± ve Saatleri",
         "title_en": "Check-in Rules and Times",
         "category": "check-in",
         "provider": "general",
         "content": """
-CHECK-IN KURALLARI VE SAATLERİ
+CHECK-IN KURALLARI VE SAATLERÄ°
 
 1. ONLINE CHECK-IN
-- Ne zaman: Uçuştan 24-48 saat önce açılır
-- Kapanış: Uçuştan 1-3 saat önce
-- Avantaj: Sıra beklemeden, koltuk seçimi
+- Ne zaman: UÃ§uÅŸtan 24-48 saat Ã¶nce aÃ§Ä±lÄ±r
+- KapanÄ±ÅŸ: UÃ§uÅŸtan 1-3 saat Ã¶nce
+- Avantaj: SÄ±ra beklemeden, koltuk seÃ§imi
 
-THY: 24 saat önce - 90 dakika önce
-Pegasus: 24 saat önce - 60 dakika önce
-Avrupa havayolları: 24-48 saat önce
+THY: 24 saat Ã¶nce - 90 dakika Ã¶nce
+Pegasus: 24 saat Ã¶nce - 60 dakika Ã¶nce
+Avrupa havayollarÄ±: 24-48 saat Ã¶nce
 
 2. HAVALIMANINDA CHECK-IN
-- Açılış: Uçuştan 3 saat önce (genel)
-- Kapanış: Yurt içi 45dk, Yurt dışı 60dk önce
-- Yoğun saatlerde erken gelin!
+- AÃ§Ä±lÄ±ÅŸ: UÃ§uÅŸtan 3 saat Ã¶nce (genel)
+- KapanÄ±ÅŸ: Yurt iÃ§i 45dk, Yurt dÄ±ÅŸÄ± 60dk Ã¶nce
+- YoÄŸun saatlerde erken gelin!
 
 3. KIOSK CHECK-IN
-- Ortalama süre: 2-5 dakika
-- Bagaj etiketi yazdırabilirsiniz
-- Sadece standart işlemler için
+- Ortalama sÃ¼re: 2-5 dakika
+- Bagaj etiketi yazdÄ±rabilirsiniz
+- Sadece standart iÅŸlemler iÃ§in
 
 4. BAGAJ BIRAKMA (Bag Drop)
-- Online check-in yaptıysanız direkt bagaj bırakma
-- Ayrı sıra, genellikle daha hızlı
-- Kapanış: Uçuştan 45-60 dk önce
+- Online check-in yaptÄ±ysanÄ±z direkt bagaj bÄ±rakma
+- AyrÄ± sÄ±ra, genellikle daha hÄ±zlÄ±
+- KapanÄ±ÅŸ: UÃ§uÅŸtan 45-60 dk Ã¶nce
 
-5. GATE KAPANIŞ
-- Boarding: Uçuştan 30-45 dakika önce başlar
-- Gate kapanış: Uçuştan 15-20 dakika önce
-- Son çağrı kaçırılırsa: Uçuşa alınmayabilirsiniz
+5. GATE KAPANIÅ
+- Boarding: UÃ§uÅŸtan 30-45 dakika Ã¶nce baÅŸlar
+- Gate kapanÄ±ÅŸ: UÃ§uÅŸtan 15-20 dakika Ã¶nce
+- Son Ã§aÄŸrÄ± kaÃ§Ä±rÄ±lÄ±rsa: UÃ§uÅŸa alÄ±nmayabilirsiniz
 
-6. GEREKLİ BELGELER
-- Yurt içi: Kimlik veya pasaport
-- Yurt dışı: Pasaport (min 6 ay geçerli)
-- Vize: Hedef ülke gereksinimlerine göre
+6. GEREKLÄ° BELGELER
+- Yurt iÃ§i: Kimlik veya pasaport
+- Yurt dÄ±ÅŸÄ±: Pasaport (min 6 ay geÃ§erli)
+- Vize: Hedef Ã¼lke gereksinimlerine gÃ¶re
 - PNR/Rezervasyon kodu
 
-7. TAVSİYELER
-- Yurt içi: 1.5-2 saat önce havalimanında olun
-- Yurt dışı: 2.5-3 saat önce
-- Transfer: Min 1.5-2 saat ara uçuş süresi
+7. TAVSÄ°YELER
+- Yurt iÃ§i: 1.5-2 saat Ã¶nce havalimanÄ±nda olun
+- Yurt dÄ±ÅŸÄ±: 2.5-3 saat Ã¶nce
+- Transfer: Min 1.5-2 saat ara uÃ§uÅŸ sÃ¼resi
         """,
         "content_en": """
 CHECK-IN RULES AND TIMES
@@ -702,12 +702,12 @@ European airlines: 24-48h before
 ]
 
 
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SEED FUNCTION
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def get_all_policies() -> List[Dict[str, Any]]:
-    """Tüm politikaları birleştir"""
+    """TÃ¼m politikalarÄ± birleÅŸtir"""
     all_policies = []
     
     # THY
@@ -719,7 +719,7 @@ def get_all_policies() -> List[Dict[str, Any]]:
             "provider": p["provider"],
             "source_url": p.get("source_url")
         })
-        # İngilizce versiyon
+        # Ä°ngilizce versiyon
         if "title_en" in p and "content_en" in p:
             all_policies.append({
                 "title": p["title_en"],
@@ -770,7 +770,7 @@ def get_all_policies() -> List[Dict[str, Any]]:
 
 async def seed_all_policies(db_session):
     """
-    Tüm politikaları veritabanına ekle
+    TÃ¼m politikalarÄ± veritabanÄ±na ekle
     
     Args:
         db_session: AsyncSession
@@ -788,9 +788,9 @@ async def seed_all_policies(db_session):
     return created_ids
 
 
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # CLI ENTRYPOINT
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async def main():
     """CLI entrypoint"""
@@ -802,12 +802,12 @@ async def main():
     
     from app.core.database import get_db_session
     
-    print("🌱 Seeding policies...")
+    print("ğŸŒ± Seeding policies...")
     print(f"   Total policies to create: {len(get_all_policies())}")
     
     async with get_db_session() as db:
         ids = await seed_all_policies(db)
-        print(f"✅ Created {len(ids)} policies")
+        print(f"âœ… Created {len(ids)} policies")
 
 
 if __name__ == "__main__":
