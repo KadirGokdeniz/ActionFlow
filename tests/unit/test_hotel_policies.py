@@ -1,5 +1,5 @@
 import pytest
-from app.models.hotel_models import HotelPolicy
+from app.services.accommodation.hotel_models import HotelPolicy
 
 def test_hotel_policy_content():
     raw_policy = {
