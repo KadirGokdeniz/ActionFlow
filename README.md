@@ -116,7 +116,7 @@ The Supervisor routes every message by intent and urgency. Agents operate indepe
 ## Quick Start
 
 ```bash
-git clone https://github.com/yourusername/actionflow-ai.git
+git clone https://github.com/KadirGokdeniz/ActionFlow.git
 cd actionflow-ai
 cp .env.example .env   # Add API keys: OpenAI, Pinecone, Twilio, AssemblyAI, ElevenLabs
 docker-compose up -d   # Takes 3–5 min on first run
@@ -132,4 +132,4 @@ curl http://localhost:8000/health
 
 ---
 
-Questions or collaboration: kadirqokdeniz@hotmail.com
+Questions or collaboration: kadir@gokdeniz.co
