@@ -1,3 +1,14 @@
+# Prometheus Integration TODO
+
+Bu doküman `main.py` dosyasına Prometheus metrics entegrasyonu için yapılacak değişiklikleri içerir.
+
+**Durum:** Henüz entegre edilmedi. Altyapı hazır (`prometheus.yml`, Grafana provisioning, `backend/app/core/metrics.py`); `main.py` şu an metric emit etmiyor — bu yüzden lokal demoda Grafana dashboard'u boş görünür.
+
+## Integration Snippet
+
+Aşağıdaki kod orijinal olarak `backend/app/main_integration_guide.py` dosyasındaydı. Buradan `main.py`'a entegre edilmesi gerekir:
+
+```python
 """
 ActionFlow AI - Main Application Entry Point
 FastAPI application with Prometheus metrics
@@ -123,3 +134,13 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 """
+
+```
+
+## Checklist
+
+- [ ] FastAPI app'e Prometheus middleware bağla
+- [ ] `/metrics` endpoint'ini expose et
+- [ ] `backend/app/core/metrics.py`'deki sayaçları route'lara bağla
+- [ ] Grafana dashboard'un veri aldığını doğrula (`http://localhost:3001`)
+- [ ] Entegrasyon tamamlanınca bu dosyayı sil
