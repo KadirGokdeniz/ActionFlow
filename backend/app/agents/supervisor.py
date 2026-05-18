@@ -15,7 +15,6 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.schemas import AgentState, ConversationState
 from app.core.utils import create_empty_travel_context
 from app.core.llm import llm
-from app.core.escalation import quick_escalation_check, analyze_escalation_need
 
 logger = logging.getLogger("ActionFlow-Supervisor")
 

@@ -5,11 +5,9 @@ Handles Speech-to-Text (AssemblyAI) and Text-to-Speech (ElevenLabs) integrations
 
 import os
 import logging
-from typing import Optional, BinaryIO
+from typing import BinaryIO
 import assemblyai as aai
 from elevenlabs.client import ElevenLabs
-from elevenlabs import save
-import io
 
 # Logging
 logger = logging.getLogger("ActionFlow-VoiceService")

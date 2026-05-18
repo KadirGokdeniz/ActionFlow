@@ -10,7 +10,6 @@ Adds JSON columns to persist orchestrator state between conversation turns:
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '002_add_travel_context'

@@ -13,7 +13,7 @@ from sqlalchemy import (
     Column, String, Integer, Float, Text, Boolean, DateTime, JSON, ForeignKey,
     Enum as SQLEnum, Index, create_engine, text
 )
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
@@ -434,7 +434,7 @@ async def search_policies_by_text(
     Returns:
         İlgili Policy listesi
     """
-    from sqlalchemy import select, and_
+    from sqlalchemy import select
     
     # Embedding oluştur
     query_embedding = await get_embedding(query)

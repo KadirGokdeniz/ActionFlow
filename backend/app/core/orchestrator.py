@@ -18,7 +18,7 @@ MCP Client: Tools are called via MCP Server
 """
 
 import logging
-from typing import Optional, List, Dict
+from typing import Optional, List
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
@@ -27,7 +27,6 @@ from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from app.core.schemas import AgentState, TravelContext, ConversationState
 from app.core.utils import create_empty_travel_context
 from app.core.tools import all_tools, mcp_client
-from app.core.llm import llm
 
 # Import Agents
 from app.agents.supervisor import supervisor_node

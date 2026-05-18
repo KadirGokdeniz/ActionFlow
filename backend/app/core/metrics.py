@@ -14,7 +14,7 @@ Metrics:
 
 import time
 import logging
-from typing import Callable, Optional
+from typing import Callable
 from functools import wraps
 from contextlib import contextmanager
 
@@ -329,7 +329,6 @@ def setup_metrics(app):
         from app.core.metrics import setup_metrics
         setup_metrics(app)
     """
-    from fastapi import FastAPI
     
     # Add middleware
     app.add_middleware(PrometheusMiddleware)

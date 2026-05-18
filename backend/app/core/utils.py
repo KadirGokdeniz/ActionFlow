@@ -3,8 +3,7 @@ from typing import List, Tuple
 from app.core.schemas import (
     TravelContext, 
     REQUIRED_FIELDS_CORE, 
-    OPTIONAL_FIELDS_IMPORTANT, 
-    OPTIONAL_FIELDS_EXTRA
+    OPTIONAL_FIELDS_IMPORTANT
 )
 
 def get_system_context() -> str:

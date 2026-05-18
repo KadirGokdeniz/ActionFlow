@@ -13,8 +13,8 @@ Tek kişilik seyahat varsayımı.
 
 import logging
 import json
-from datetime import datetime, timedelta
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from datetime import datetime
+from langchain_core.messages import AIMessage, SystemMessage
 from app.core.schemas import AgentState, ConversationState
 from app.core.llm import llm
 

@@ -15,7 +15,7 @@ Her faz için ayrı prompt ve mantık.
 import logging
 import re
 import json
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Dict, Any
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
 from app.core.schemas import AgentState
 from app.core.utils import get_system_context

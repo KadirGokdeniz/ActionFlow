@@ -5,7 +5,7 @@ Semantic search for travel policies using OpenAI embeddings + Pinecone
 
 import os
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict
 from pinecone import Pinecone, ServerlessSpec
 from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore

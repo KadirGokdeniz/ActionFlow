@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Optional, Any
+from typing import Optional
 import redis.asyncio as redis
 
 logger = logging.getLogger("ActionFlow-Redis")

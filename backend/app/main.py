@@ -27,7 +27,7 @@ from app.api.v1.policy_routes import router as policy_router
 from app.api.v1.voice_routes import router as voice_router
 from app.api.v1.whatsapp import router as whatsapp_router
 
-from app.core.metrics import setup_metrics, track_end_to_end
+from app.core.metrics import setup_metrics
 
 # ═══════════════════════════════════════════════════════════════════
 # LOGGING

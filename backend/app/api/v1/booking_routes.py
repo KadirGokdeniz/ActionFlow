@@ -5,14 +5,13 @@ Rezervasyon oluşturma, listeleme, iptal ve detay görüntüleme API'leri
 Demo modunda fake booking oluşturur ve n8n workflow tetikler.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from enum import Enum
 import uuid
 import logging
-import os
 
 from app.services.integration.n8n_service import n8n_service
 

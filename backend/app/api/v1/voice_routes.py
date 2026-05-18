@@ -4,7 +4,7 @@ Endpoints for Speech-to-Text and Text-to-Speech.
 """
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Body
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response
 import logging
 from app.services.voice.voice_service import transcribe_audio, text_to_speech
 import io
