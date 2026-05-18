@@ -1,4 +1,4 @@
-from app.services.flight.mappers.mapper import map_baggage_ancillaries
+from app.services.flight.ancillary_mapper import map_baggage_ancillaries
 from app.models.flight_models import Ancillary
 
 
