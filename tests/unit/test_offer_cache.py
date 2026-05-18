@@ -6,7 +6,7 @@ import app.services.flight.offer_cache as cache
 
 def test_store_and_get_offer():
     offer_id = "TEST_OFFER_1"
-    raw = {"id": offer_id, "price": {"total": "100"}}
+    raw = {"id": offer_id, "type": "flight-offer", "price": {"total": "100"}}
 
     store_offer(offer_id, raw)
     result = get_offer(offer_id)
