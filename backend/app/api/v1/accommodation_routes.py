@@ -108,7 +108,7 @@ async def get_hotel_offers(request: HotelOffersRequest):
 # BOOKING.COM DESTINATION SEARCH
 # --------------------------------------------------
 @router.get("/search-destination")
-def booking_search_destination(
+async def booking_search_destination(
     city: str | None = None,
     city_name: str | None = None,
     locale: str = "en-gb"
@@ -120,7 +120,7 @@ def booking_search_destination(
     if not city_value:
         raise HTTPException(status_code=422, detail="city or city_name required")
 
-    return booking_get(
+    return await booking_get(
         "/v1/hotels/locations",
         {
             "name": city_value,
