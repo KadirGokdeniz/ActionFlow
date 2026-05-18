@@ -105,19 +105,3 @@ def map_booking_response(raw_response: dict) -> BookingResult:
         currency=price_data.get("currency", "EUR"),
         warnings=[w.get("detail", "") for w in raw_response.get("warnings", [])],
     )
-
-
-def map_baggage_ancillaries(raw_offer: dict) -> List[Ancillary]:
-    """Ek bagaj hizmetlerini Ancillary listesine dönüştürür."""
-    
-    services = raw_offer.get("price", {}).get("otherServices", [])
-    
-    return [
-        Ancillary(
-            type=s.get("type", "BAGGAGE"),
-            description=s.get("description", ""),
-            price=float(s.get("amount", 0)),
-            currency=s.get("currency", "EUR"),
-        )
-        for s in services
-    ]
