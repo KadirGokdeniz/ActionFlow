@@ -1,5 +1,5 @@
-from backend.app.services.flight.mappers.mapper import map_amadeus_offer
-from backend.app.models.flight_models import FlightOffer
+from app.services.flight.mappers.mapper import map_amadeus_offer
+from app.models.flight_models import FlightOffer
 
 
 def test_map_amadeus_offer_basic():
