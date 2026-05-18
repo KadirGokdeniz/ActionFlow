@@ -1,6 +1,5 @@
 import pytest
 from app.services.accommodation.hotel_models import HotelOffer, HotelDestination
-from app.services.accommodation.hotel_tools import get_hotel_destination # Assuming logic is similar to Amadeus
 
 def test_map_hotel_destination():
     # Mocking a raw response from Booking.com searchDestination

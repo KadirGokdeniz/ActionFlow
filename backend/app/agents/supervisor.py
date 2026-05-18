@@ -15,6 +15,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.schemas import AgentState, ConversationState
 from app.core.utils import create_empty_travel_context
 from app.core.llm import llm
+from app.core.escalation import quick_escalation_check, analyze_escalation_need
 
 logger = logging.getLogger("ActionFlow-Supervisor")
 
@@ -42,34 +43,25 @@ async def supervisor_node(state: AgentState) -> dict:
     # ─────────────────────────────────────────────────────────────
     # ESCALATION CHECK (Sentiment-based)
     # ─────────────────────────────────────────────────────────────
-    """
-    # Hızlı kontrol: Açık insan talebi var mı?
+        # Quick check: explicit human request?
     if await quick_escalation_check(last_user_message):
-        logger.info("🚨 [SUPERVISOR] Explicit escalation request detected")
+        logger.info("Explicit escalation request detected")
         return {
             "next_agent": "escalation",
             "current_state": ConversationState.ESCALATION
         }
-    # Detaylı analiz: Frustration/anger var mı?
-    conversation_context = "\n".join([
-        f"{'User' if isinstance(m, HumanMessage) else 'AI'}: {m.content}"
-        for m in messages[-5:]
-        if hasattr(m, 'content')
-    ])
-    # ACTION veya SHARPENING sırasında sentiment kontrolü
-    if (
-        current_state == ConversationState.ACTION or  # Action sırasında
-        current_state == ConversationState.SHARPENING  # Sharpening sırasında
-    ):
-        escalation_result = await analyze_escalation_need(last_user_message, conversation_context)
+    # Sentiment analysis during ACTION or SHARPENING
+    if current_state in (ConversationState.ACTION, ConversationState.SHARPENING):
+        escalation_result = await analyze_escalation_need(
+            messages=messages[-6:],
+            travel_context=state.get("travel_context"),
+        )
         if escalation_result.get("should_escalate"):
-            logger.info(f"🚨 [SUPERVISOR] Escalation needed: {escalation_result.get('reason')}")
+            logger.info(f"Escalation needed: {escalation_result.get('reason')}")
             return {
                 "next_agent": "escalation",
-                "current_state": ConversationState.ESCALATION,
-                "escalation_reason": escalation_result.get("reason")
+                "current_state": ConversationState.ESCALATION
             }
-    """
     # ─────────────────────────────────────────────────────────────
     # NORMAL ROUTING
     # ─────────────────────────────────────────────────────────────
