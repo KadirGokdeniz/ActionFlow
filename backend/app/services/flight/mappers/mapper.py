@@ -83,25 +83,3 @@ def _extract_fare_brand(raw_offer: dict) -> Optional[str]:
         return None
     
     return fare_details[0].get("fareBasis")
-
-
-def map_booking_response(raw_response: dict) -> BookingResult:
-    """Amadeus booking yanıtını BookingResult modeline dönüştürür."""
-    
-    # PNR'ı associatedRecords'dan çıkar
-    pnr = None
-    records = raw_response.get("associatedRecords", [])
-    if records:
-        pnr = records[0].get("reference")
-    
-    # Fiyat bilgisi
-    price_data = raw_response.get("flightOffers", [{}])[0].get("price", {})
-    
-    return BookingResult(
-        order_id=raw_response.get("id", ""),
-        status="CONFIRMED" if raw_response.get("id") else "FAILED",
-        ticketed=raw_response.get("ticketingAgreement", {}).get("option") == "CONFIRM",
-        total_price=float(price_data.get("total", 0)),
-        currency=price_data.get("currency", "EUR"),
-        warnings=[w.get("detail", "") for w in raw_response.get("warnings", [])],
-    )
