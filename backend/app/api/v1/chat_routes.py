@@ -15,7 +15,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db, Conversation, Message, ConversationStatus
@@ -75,15 +75,14 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[str] = Field(default=None, description="Mevcut konuşma ID (devam etmek için)")
     language: Optional[str] = Field(default="en", description="Tercih edilen dil: tr, en, auto")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "message": "Yarın IST'den Amsterdam'a uçuş var mı?",
                 "customer_id": "user123",
                 "conversation_id": None,
                 "language": "auto"
             }
-        }
+    })
 
 
 class ChatMessage(BaseModel):
@@ -105,8 +104,7 @@ class ChatResponse(BaseModel):
     suggestions: Optional[List[str]] = None
     processing_time_ms: Optional[int] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "conversation_id": "conv_abc123",
                 "message": "IST-AMS için yarın 3 uçuş buldum...",
@@ -117,7 +115,7 @@ class ChatResponse(BaseModel):
                 "suggestions": ["Morning flights", "Business class", "Direct only"],
                 "processing_time_ms": 1250
             }
-        }
+    })
 
 
 class ConversationHistory(BaseModel):
