@@ -34,12 +34,6 @@ from app.agents.intent_sharpener import intent_sharpener_node
 from app.agents.info_agent import info_agent_node
 from app.agents.action_agent import action_agent_node
 
-# Configuration
-LOG_LEVEL = "INFO"
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger("ActionFlow-Orchestrator-v4")
 
 
