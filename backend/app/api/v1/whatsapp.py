@@ -198,7 +198,8 @@ async def handle_whatsapp_incoming(
             current_state=current_state,
             plan_ready=plan_ready,
             sharpening_turns=sharpening_turns,
-            action_turns=action_turns
+            action_turns=action_turns,
+            channel="whatsapp"
         )
         
         response_text = result["response"]
