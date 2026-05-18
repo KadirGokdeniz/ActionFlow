@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: sk-test-fake-key-for-ci
+      PINECONE_API_KEY: fake-pinecone-key-for-ci
 
     steps:
       - uses: actions/checkout@v4
