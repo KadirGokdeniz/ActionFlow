@@ -9,10 +9,12 @@ from app.core.schemas import AgentState
 from app.core.utils import get_system_context
 from app.core.llm import llm
 from app.core.rag_service import get_policy_context
+from app.core.metrics import track_agent
 
 logger = logging.getLogger("ActionFlow-InfoAgent")
 
 
+@track_agent("info")
 async def info_agent_node(state: AgentState) -> dict:
     """
     Info Agent - Answers policy questions using RAG

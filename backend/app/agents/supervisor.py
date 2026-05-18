@@ -16,10 +16,12 @@ from app.core.schemas import AgentState, ConversationState
 from app.core.utils import create_empty_travel_context
 from app.core.llm import llm
 from app.core.escalation import quick_escalation_check, analyze_escalation_need
+from app.core.metrics import track_agent
 
 logger = logging.getLogger("ActionFlow-Supervisor")
 
 
+@track_agent("supervisor")
 async def supervisor_node(state: AgentState) -> dict:
     """
     Supervisor v2 - Intelligent routing with sentiment-based escalation

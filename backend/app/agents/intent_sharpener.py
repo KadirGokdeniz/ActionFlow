@@ -17,6 +17,7 @@ from datetime import datetime
 from langchain_core.messages import AIMessage, SystemMessage
 from app.core.schemas import AgentState, ConversationState
 from app.core.llm import llm
+from app.core.metrics import track_agent
 
 logger = logging.getLogger("ActionFlow-Sharpener")
 
@@ -269,6 +270,7 @@ def get_phase_prompt(phase: int, language: str = "tr") -> dict:
 # MAIN SHARPENER NODE
 # ═══════════════════════════════════════════════════════════════════
 
+@track_agent("sharpener")
 async def intent_sharpener_node(state: AgentState) -> dict:
     """
     Intent Sharpener v3 - 4 Turn Yapısı

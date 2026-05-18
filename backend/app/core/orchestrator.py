@@ -27,6 +27,7 @@ from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from app.core.schemas import AgentState, TravelContext, ConversationState
 from app.core.utils import create_empty_travel_context
 from app.core.tools import all_tools, mcp_client
+from app.core.metrics import track_end_to_end
 
 # Import Agents
 from app.agents.supervisor import supervisor_node
@@ -208,7 +209,8 @@ async def chat(
     plan_ready: bool = False,
     sharpening_turns: int = 0,
     action_turns: int = 0,
-    completed_tasks: Optional[List[str]] = None  # ← ADDED!
+    completed_tasks: Optional[List[str]] = None,
+    channel: str = "web"
 ) -> dict:
     """
     Chat interface
@@ -252,7 +254,8 @@ async def chat(
         "language": "en"
     }
     
-    result = await graph.ainvoke(initial_state)
+    with track_end_to_end(channel):
+        result = await graph.ainvoke(initial_state)
     
     # Get last AI message
     response_text = None

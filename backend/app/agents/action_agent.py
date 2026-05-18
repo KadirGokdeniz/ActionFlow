@@ -21,6 +21,7 @@ from app.core.schemas import AgentState
 from app.core.utils import get_system_context
 from app.core.llm import llm
 from app.core.tools import action_tools
+from app.core.metrics import track_agent
 from app.core.tools.location import location_tools
 
 logger = logging.getLogger("ActionFlow-ActionAgent")
@@ -198,6 +199,7 @@ def _extract_selected_offers(state: AgentState) -> Dict[str, Any]:
 # MAIN NODE
 # ═══════════════════════════════════════════════════════════════════
 
+@track_agent("action")
 async def action_agent_node(state: AgentState) -> dict:
     """
     Action Agent v4 - Phase-based execution with booking integration
