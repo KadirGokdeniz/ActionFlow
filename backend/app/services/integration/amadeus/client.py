@@ -77,7 +77,8 @@ async def amadeus_get(
 ) -> Dict[str, Any]:
     """
     Make GET request to Amadeus API.
-    ALWAYS returns raw JSON response as dict.
+    Returns the full raw JSON response dict.
+    Callers must access response["data"] themselves.
     """
     token = await get_access_token()
 
@@ -114,13 +115,8 @@ async def amadeus_get(
 async def amadeus_post(endpoint: str, body: Optional[Dict[str, Any]] = None) -> Any:
     """
     Make POST request to Amadeus API.
-    
-    Args:
-        endpoint: API endpoint
-        body: Request body (JSON)
-    
-    Returns:
-        API response data
+    Returns response["data"] unwrapped (unlike amadeus_get which returns full response).
+    Callers access fields directly (e.g. response.get("flightOffers")).
     """
     token = await get_access_token()
     
