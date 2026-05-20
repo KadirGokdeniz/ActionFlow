@@ -49,41 +49,43 @@ all_action_tools = action_tools + location_tools
 
 def determine_phase(state: AgentState) -> str:
     """
-    Mevcut state'e bakarak hangi fazda olduğumuzu belirle
+    action_phase field kullanarak mevcut fazi belirle.
+    action_phase: None->SEARCH, searching->PRESENT, presented->CONFIRM/PRESENT,
+                  confirming->BOOK/CONFIRM, booked/completed->COMPLETE
     """
-    messages = state.get("messages", [])
-    completed_tasks = state.get("completed_tasks", [])
+    action_phase = state.get('action_phase')
+    messages = state.get('messages', [])
     
     if not messages:
         return ActionPhase.SEARCH
     
-    # Booking tamamlandı mı?
-    if "booking_completed" in completed_tasks:
+    # action_phase None ise ilk arama
+    if not action_phase:
+        return ActionPhase.SEARCH
+    
+    # Arama tamamlandi, sonuclari sun
+    if action_phase == 'searching':
+        return ActionPhase.PRESENT
+    
+    # Sonuclar sunuldu - kullanici secim yapti mi?
+    if action_phase == 'presented':
+        last_human = [m for m in messages if m.__class__.__name__ == 'HumanMessage']
+        if last_human and _detect_user_selection([last_human[-1]]):
+            return ActionPhase.CONFIRM
+        return ActionPhase.PRESENT
+    
+    # Secim onaylandi - kullanici evet dedi mi?
+    if action_phase == 'confirming':
+        last_human = [m for m in messages if m.__class__.__name__ == 'HumanMessage']
+        if last_human and _detect_user_confirmation([last_human[-1]]):
+            return ActionPhase.BOOK
+        return ActionPhase.CONFIRM
+    
+    # Rezervasyon tamamlandi
+    if action_phase in ('booked', 'completed'):
         return ActionPhase.COMPLETE
     
-    # Kullanıcı onay verdi mi? (seçim + "evet/book it")
-    if user_confirmation := _detect_user_confirmation(messages):
-        if "selection_presented" in completed_tasks:
-            return ActionPhase.BOOK
-    
-    # Kullanıcı seçim yaptı mı? (1, 2, "first option" vb.)
-    if user_selection := _detect_user_selection(messages):
-        if "results_presented" in completed_tasks:
-            return ActionPhase.CONFIRM
-    
-    # CRITICAL FIX: Check if search was initiated
-    if "search_initiated" in completed_tasks and "results_presented" not in completed_tasks:
-        logger.info("🔍 [PHASE] Search initiated, routing to PRESENT")
-        return ActionPhase.PRESENT
-    
-    # Sonuçlar gösterildi mi?
-    if "results_presented" in completed_tasks and not user_selection:
-        # Kullanıcı cevap bekleniyor, aynı fazda kal
-        return ActionPhase.PRESENT
-    
-    # Varsayılan: Arama yap
     return ActionPhase.SEARCH
-
 
 def _check_tool_results(messages: list) -> bool:
     """Son mesajlarda tool sonucu var mı?"""
@@ -248,7 +250,8 @@ async def _handle_search_phase(state: AgentState) -> dict:
             logger.info("✅ [SEARCH] Tool results detected, marking search complete")
             return {
                 "messages": [AIMessage(content="Search completed. Results ready to present.")],
-                "completed_tasks": state.get("completed_tasks", []) + ["search_initiated"]
+                "completed_tasks": state.get("completed_tasks", []) + ["search_initiated"],
+                "action_phase": "searching"
             }
     
     context = get_system_context()
@@ -317,7 +320,8 @@ RULES:
     
     return {
         "messages": [response],
-        "completed_tasks": new_tasks
+        "completed_tasks": new_tasks,
+        "action_phase": "searching",
     }
 
 
@@ -409,7 +413,8 @@ RULES:
     
     return {
         "messages": [response],
-        "completed_tasks": new_tasks
+        "completed_tasks": new_tasks,
+        "action_phase": "presented",
     }
 
 
@@ -500,6 +505,7 @@ RULES:
     return {
         "messages": [response],
         "completed_tasks": new_tasks,
+        "action_phase": "confirming",
         "awaiting_confirmation": True
     }
 
@@ -582,6 +588,7 @@ Thank the user and ask if they need anything else.
     return {
         "messages": [response],
         "completed_tasks": new_tasks,
+        "action_phase": "booked",
         "awaiting_confirmation": False
     }
 

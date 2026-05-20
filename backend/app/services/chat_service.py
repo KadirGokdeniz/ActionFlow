@@ -152,6 +152,7 @@ def restore_cached_state(cached_state, conversation, is_new: bool) -> dict:
         state["sharpening_turns"] = cached_state.get("sharpening_turns", 0)
         state["action_turns"] = cached_state.get("action_turns", 0)
         state["completed_tasks"] = cached_state.get("completed_tasks", [])
+        state["action_phase"] = cached_state.get("action_phase")
     elif not is_new:
         state["travel_context"] = conversation.travel_context
     return state
@@ -167,5 +168,6 @@ def build_state_to_cache(updated_state: dict, language: str) -> dict:
         "action_turns": updated_state.get("action_turns", 0),
         "intent_category": updated_state.get("intent_category"),
         "completed_tasks": updated_state.get("completed_tasks", []),
+        "action_phase": updated_state.get("action_phase"),
         "language": language,
     }

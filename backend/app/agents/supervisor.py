@@ -179,16 +179,19 @@ Return JSON:
         messages = state.get("messages", [])
         last_message = messages[-1] if messages else None
         
-        # ═══════════════════════════════════════════════════════════
-        # CRITICAL FIX: Check if results were presented
-        # ═══════════════════════════════════════════════════════════
-        if "results_presented" in completed_tasks:
-            # Results shown to user, wait for their input
-            logger.info("📋 [SUPERVISOR] Results presented, waiting for user selection")
-            return {
-                "next_agent": "end",
-                "current_state": ConversationState.ACTION
-            }
+        # ACTION PHASE ROUTING (action_phase field - replace semantics)
+        action_phase = state.get('action_phase')
+        if action_phase in ('presented', 'confirming'):
+            last_msg_type = messages[-1].__class__.__name__ if messages else ''
+            if last_msg_type == 'HumanMessage':
+                logger.info(f'[SUPERVISOR] New user input at phase={action_phase}, routing to action')
+                return {'next_agent': 'action', 'current_state': ConversationState.ACTION}
+            else:
+                logger.info(f'[SUPERVISOR] Waiting for user: action_phase={action_phase}')
+                return {'next_agent': 'end', 'current_state': ConversationState.ACTION}
+        if action_phase in ('booked', 'completed'):
+            return {'next_agent': 'end', 'current_state': ConversationState.COMPLETED}
+        
         
         # Tool sonuçları var mı kontrol et
         has_tool_results = False

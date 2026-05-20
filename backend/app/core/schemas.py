@@ -90,6 +90,10 @@ class AgentState(TypedDict):
     # Completed tasks - CRITICAL FIX!
     completed_tasks: Annotated[List[str], operator.add]  # ← FIX!
 
+    # Action phase tracker (replace semantics - not add!)
+    # Values: None|searching|presented|confirming|booked|completed
+    action_phase: Optional[str]
+
 # ═══════════════════════════════════════════════════════════════════
 # REQUIRED FIELDS (UPDATED - Smart Grouping)
 # ═══════════════════════════════════════════════════════════════════

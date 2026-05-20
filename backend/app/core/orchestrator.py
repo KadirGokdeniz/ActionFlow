@@ -210,6 +210,7 @@ async def chat(
     sharpening_turns: int = 0,
     action_turns: int = 0,
     completed_tasks: Optional[List[str]] = None,
+    action_phase: Optional[str] = None,
     channel: str = "web"
 ) -> dict:
     """
@@ -251,6 +252,7 @@ async def chat(
         "awaiting_confirmation": False,
         "suggestions": [],
         "completed_tasks": completed_tasks or [],  # ← FIXED!
+                "action_phase": action_phase,
         "language": "en"
     }
     
@@ -282,6 +284,7 @@ async def chat(
             "action_turns": result.get("action_turns", 0),
             "intent_category": result.get("intent_category"),
             "completed_tasks": result.get("completed_tasks", []),
+            "action_phase": result.get("action_phase"),
             "suggestions": result.get("suggestions", [])
         },
         "suggestions": result.get("suggestions", [])
