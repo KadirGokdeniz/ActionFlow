@@ -19,22 +19,6 @@ Travel support averages [2–12 hours response time](https://www.mightytravels.c
 
 ActionFlow **understands, decides, and executes**: policy lookup, cancellation, refund, and rebooking from a single message. One conversation. Multiple parallel actions. No waiting.
 
-## Results
-
-- **~3.8s median end-to-end latency** (p95 ~9s) — Prometheus-measured over 107 live requests
-- **3/3 n8n workflows verified** end-to-end — booking confirmation, cancellation & refund, escalation alert
-- **121 tests passing in CI** — unit + integration across 7 categories
-- **Scale:** 5 agents · 9 MCP tools · 3 n8n pipelines · 2 channels (Web + WhatsApp)
-
-<p align="center">
-  <img src="assets/1.png" alt="End-to-End Chat Latency p50/p95/p99" width="90%" />
-  <br/>
-  <em>End-to-end chat latency: p50 ~3.8s, p95 ~9s, p99 hits 10s histogram ceiling.</em>
-</p>
-
-> Latency figures exported from the running service via Prometheus and visualized in Grafana,
-> captured over a demo window (107 chat requests across varied intents) — representative, not production-scale.
-
 ## Demo
 
 ```
@@ -176,6 +160,22 @@ This solves a fundamental LangGraph challenge: `completed_tasks` uses an `add` r
 | **Pinecone** | Production-ready semantic search with zero infra management |
 | **Redis** | Sub-ms latency for session state. `action_phase` field persisted across turns |
 | **OpenAI Realtime API** | Single WebSocket for STT+LLM+TTS (~500ms vs 3–5s with separate services) |
+
+## Results
+
+- **~3.8s median end-to-end latency** (p95 ~9s) — Prometheus-measured over 107 live requests
+- **3/3 n8n workflows verified** end-to-end — booking confirmation, cancellation & refund, escalation alert
+- **121 tests passing in CI** — unit + integration across 7 categories
+- **Scale:** 5 agents · 9 MCP tools · 3 n8n pipelines · 2 channels (Web + WhatsApp)
+
+<p align="center">
+  <img src="assets/1.png" alt="End-to-End Chat Latency p50/p95/p99" width="90%" />
+  <br/>
+  <em>End-to-end chat latency: p50 ~3.8s, p95 ~9s, p99 hits 10s histogram ceiling.</em>
+</p>
+
+> Latency figures exported from the running service via Prometheus and visualized in Grafana,
+> captured over a demo window (107 chat requests across varied intents) — representative, not production-scale.
 
 ## Quick Start
 
