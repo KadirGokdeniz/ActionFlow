@@ -448,7 +448,47 @@ RULES:
     
     logger.info(f"📋 [PRESENT] Using 2 messages (system + user with embedded results)")
     
-    response = await llm.ainvoke(minimal_messages)
+    # Direkt tool sonuclarindan u?u? listesi olustur
+    import json as _json
+    direct_flights = []
+    for msg in reversed(messages[-10:]):
+        if 'Tool' in str(type(msg).__name__) and hasattr(msg, 'content'):
+            try:
+                data = _json.loads(msg.content)
+                if isinstance(data, list) and data:
+                    for idx, offer in enumerate(data[:3], 1):
+                        seg = (offer.get('segments') or [{}])[0]
+                        carrier = seg.get('carrier', 'Airline')
+                        fn = seg.get('flight_number', '')
+                        orig = seg.get('origin', '')
+                        dest = seg.get('destination', '')
+                        dep = str(seg.get('departure', ''))[:16]
+                        arr = str(seg.get('arrival', ''))[:16]
+                        price = offer.get('price', '')
+                        curr = offer.get('currency', 'EUR')
+                        stops = len(offer.get('segments', [])) - 1
+                        direct_flights.append(
+                            f'{idx}. **{carrier} {fn}** - {price} {curr}\n'
+                            f'   {orig} {dep} -> {dest} {arr}\n'
+                            f'   Stops: {stops}'
+                        )
+                    break
+            except Exception:
+                pass
+    
+    if direct_flights:
+        if language == 'tr':
+            header = '\u2708\ufe0f **U\u00e7u\u015f Se\u00e7enekleri:**'
+            footer = '\n\n\U0001f4a1 **Hangi se\u00e7ene\u011fi istersiniz? Numarayla belirtin!**'
+        else:
+            header = '\u2708\ufe0f **Flight Options:**'
+            footer = '\n\n\U0001f4a1 **Which option would you like? Just tell me the number!**'
+        flight_text = header + '\n\n' + '\n\n'.join(direct_flights) + footer
+        from langchain_core.messages import AIMessage as _AI
+        response = _AI(content=flight_text)
+    else:
+        # Fallback: LLM formatlasin
+        response = await llm.ainvoke(minimal_messages)
     
     # Task güncelle
     new_tasks = state.get("completed_tasks", []).copy()
