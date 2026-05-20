@@ -70,3 +70,21 @@ async def trigger_modification_notification(booking_data: Dict[str, Any], change
     await n8n_service.trigger_workflow("booking-modification", payload)
     logger.info(f"📧 Modification notification triggered for {booking_data['id']}")
 
+
+async def trigger_escalation_alert(escalation_data):
+    """n8n escalation alert workflow'unu tetikle"""
+    payload = {
+        "event": "escalation",
+        "customer_id": escalation_data.get("customer_id", "unknown"),
+        "reason": escalation_data.get("reason", "Customer needs human support"),
+        "urgency": escalation_data.get("urgency", "normal"),
+        "summary": escalation_data.get("summary", ""),
+        "contact": escalation_data.get("contact", ""),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    success = await n8n_service.trigger_workflow("escalation-alert", payload)
+    if success:
+        logger.info(f"Escalation alert triggered for {payload['customer_id']}")
+    else:
+        logger.warning(f"Failed to trigger escalation alert")
+    return success

@@ -69,6 +69,18 @@ Your request has been recorded. We will get back to you as soon as possible.
 Could you please share your contact information? (phone or email)
 """
     
+    # Trigger n8n escalation alert workflow
+    try:
+        from app.services.integration.booking_notifications import trigger_escalation_alert
+        await trigger_escalation_alert({
+            "customer_id": state.get("customer_id", "unknown"),
+            "reason": "AI could not resolve - human handoff requested",
+            "urgency": "high" if state.get("intent_category") == "REACTIVE" else "normal",
+            "summary": summary,
+        })
+    except Exception as _e:
+        logger.warning(f"Escalation n8n trigger failed: {_e}")
+
     return {
         "messages": [AIMessage(content=response_text)],
         "current_state": ConversationState.ESCALATION
