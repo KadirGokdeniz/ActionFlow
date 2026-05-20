@@ -15,7 +15,7 @@ logger = logging.getLogger("ActionFlow-Realtime")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://mcp-server:3000")
-REALTIME_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
+REALTIME_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview"
 
 REALTIME_TOOLS = [
     {
@@ -117,8 +117,7 @@ async def realtime_session_handler(browser_ws, customer_id: str):
         return
 
     headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "OpenAI-Beta": "realtime=v1"
+        "Authorization": f"Bearer {OPENAI_API_KEY}"
     }
 
     try:
