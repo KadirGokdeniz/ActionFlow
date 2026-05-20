@@ -499,3 +499,28 @@ async def modify_booking(
 # N8N WORKFLOW TRIGGERS
 # ═══════════════════════════════════════════════════════════════════
 
+
+
+@router.post("/{booking_id}/notify")
+async def notify_booking(
+    booking_id: str,
+    request: dict = None,
+    current_user = Depends(get_current_user)
+):
+    """n8n callback: email notification sent."""
+    if booking_id not in _bookings_db:
+        raise HTTPException(status_code=404, detail=f"Booking not found: {booking_id}")
+    _bookings_db[booking_id]["notification_sent"] = True
+    return {"status": "ok", "booking_id": booking_id}
+
+
+@router.post("/{booking_id}/refund")
+async def process_refund(
+    booking_id: str,
+    current_user = Depends(get_current_user)
+):
+    """n8n callback: refund processed."""
+    if booking_id not in _bookings_db:
+        raise HTTPException(status_code=404, detail=f"Booking not found: {booking_id}")
+    _bookings_db[booking_id]["refund_status"] = "processing"
+    return {"status": "ok", "booking_id": booking_id}
