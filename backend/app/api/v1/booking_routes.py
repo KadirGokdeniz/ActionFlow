@@ -5,7 +5,7 @@ Rezervasyon oluşturma, listeleme, iptal ve detay görüntüleme API'leri
 Demo modunda fake booking oluşturur ve n8n workflow tetikler.
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
@@ -113,7 +113,8 @@ def generate_booking_id() -> str:
 @router.post("/flight", response_model=BookingResponse)
 async def create_flight_booking(
     request: FlightBookingRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
 ):
     """
     Uçuş rezervasyonu oluştur (Demo mode)
@@ -185,7 +186,8 @@ async def create_flight_booking(
 @router.post("/hotel", response_model=BookingResponse)
 async def create_hotel_booking(
     request: HotelBookingRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
 ):
     """
     Otel rezervasyonu oluştur (Demo mode)
@@ -257,7 +259,8 @@ async def create_hotel_booking(
 @router.post("/package", response_model=BookingResponse)
 async def create_package_booking(
     request: PackageBookingRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
 ):
     """
     Paket rezervasyonu oluştur (Uçuş + Otel)
@@ -353,7 +356,8 @@ async def create_package_booking(
 async def get_user_bookings(
     user_id: str,
     status: Optional[str] = None,
-    type: Optional[str] = None
+    type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
 ):
     """Kullanıcının rezervasyonlarını listele"""
     
@@ -374,7 +378,7 @@ async def get_user_bookings(
     }
 
 @router.get("/{booking_id}")
-async def get_booking_details(booking_id: str):
+async def get_booking_details(booking_id: str, current_user: User = Depends(get_current_user)):
     """Tek bir rezervasyonun detaylarını getir"""
     
     if booking_id not in _bookings_db:
@@ -391,7 +395,8 @@ async def get_booking_details(booking_id: str):
 async def cancel_booking(
     booking_id: str,
     request: CancelBookingRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
 ):
     """Rezervasyonu iptal et"""
     
@@ -437,7 +442,8 @@ async def cancel_booking(
 async def modify_booking(
     booking_id: str,
     modification: Dict[str, Any],
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
 ):
     """Rezervasyonda değişiklik yap"""
     
