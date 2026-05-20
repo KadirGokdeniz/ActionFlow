@@ -182,6 +182,50 @@ def _extract_passenger_info(state: AgentState) -> Dict[str, Any]:
     }
 
 
+
+def _extract_flight_details_from_messages(messages: list, selection_index: int = 0) -> dict:
+    """Tool mesajlarindan gercek ucus verisini cikar."""
+    import json
+    for msg in reversed(messages):
+        if msg.__class__.__name__ in ("ToolMessage", "FunctionMessage"):
+            try:
+                content = getattr(msg, "content", "")
+                if isinstance(content, list):
+                    content = " ".join(str(c) for c in content)
+                # JSON array mi?
+                data = json.loads(content)
+                if isinstance(data, list) and len(data) > selection_index:
+                    offer = data[selection_index]
+                    seg = (offer.get("segments") or [{}])[0]
+                    return {
+                        "airline": seg.get("carrier", "Airline"),
+                        "flight_number": seg.get("flight_number", ""),
+                        "origin": seg.get("origin", ""),
+                        "destination": seg.get("destination", ""),
+                        "departure": seg.get("departure", ""),
+                        "arrival": seg.get("arrival", ""),
+                        "price": offer.get("price", ""),
+                        "currency": offer.get("currency", "EUR"),
+                        "offer_id": offer.get("offer_id", ""),
+                    }
+                # Dict mi (tekli offer)?
+                if isinstance(data, dict):
+                    seg = (data.get("segments") or [{}])[0]
+                    return {
+                        "airline": seg.get("carrier", "Airline"),
+                        "flight_number": seg.get("flight_number", ""),
+                        "origin": seg.get("origin", ""),
+                        "destination": seg.get("destination", ""),
+                        "departure": seg.get("departure", ""),
+                        "arrival": seg.get("arrival", ""),
+                        "price": data.get("price", ""),
+                        "currency": data.get("currency", "EUR"),
+                        "offer_id": data.get("offer_id", ""),
+                    }
+            except Exception:
+                continue
+    return {}
+
 def _extract_selected_offers(state: AgentState) -> Dict[str, Any]:
     """
     Conversation history'den seçilen offer ID'lerini çıkar.
@@ -429,6 +473,16 @@ async def _handle_confirm_phase(state: AgentState) -> dict:
     
     # Seçimi tespit et
     selection = _detect_user_selection(state["messages"])
+    # Gercek ucus verisini tool mesajlarindan cikar
+    selection_idx = (selection['value'] - 1) if selection else 0
+    flight_details = _extract_flight_details_from_messages(state['messages'], selection_idx)
+    flight_info = (
+        f"SELECTED FLIGHT: {flight_details.get('airline','')} {flight_details.get('flight_number','')}"
+        f" | {flight_details.get('origin','')} -> {flight_details.get('destination','')}"
+        f" | Dep: {str(flight_details.get('departure',''))[:16]}"
+        f" | Price: {flight_details.get('price','')} {flight_details.get('currency','EUR')}"
+        if flight_details else 'Flight details: see conversation history'
+    )
     selection_text = f"Selection: Option {selection['value']}" if selection else "Selection not clear"
     
     lang_instruction = "Respond in Turkish." if language == "tr" else "Respond in English."
@@ -479,6 +533,7 @@ YOUR TASK: Confirm user's selection and ask for booking approval
 ═══════════════════════════════════════════════════════════════
 
 {selection_text}
+{flight_info}
 
 Show the selected option details and ask for confirmation:
 
