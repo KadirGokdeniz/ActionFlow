@@ -133,3 +133,39 @@ async def load_conversation_messages(
 # ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════
 
+
+
+def restore_cached_state(cached_state, conversation, is_new: bool) -> dict:
+    """Extract state fields from Redis cache. Falls back to DB travel_context on miss."""
+    state = {
+        "travel_context": None,
+        "current_state": None,
+        "plan_ready": False,
+        "sharpening_turns": 0,
+        "action_turns": 0,
+        "completed_tasks": [],
+    }
+    if cached_state:
+        state["travel_context"] = cached_state.get("travel_context")
+        state["current_state"] = cached_state.get("current_state")
+        state["plan_ready"] = cached_state.get("plan_ready", False)
+        state["sharpening_turns"] = cached_state.get("sharpening_turns", 0)
+        state["action_turns"] = cached_state.get("action_turns", 0)
+        state["completed_tasks"] = cached_state.get("completed_tasks", [])
+    elif not is_new:
+        state["travel_context"] = conversation.travel_context
+    return state
+
+
+def build_state_to_cache(updated_state: dict, language: str) -> dict:
+    """Build the dict to persist to Redis after each turn."""
+    return {
+        "travel_context": updated_state.get("travel_context"),
+        "current_state": updated_state.get("current_state"),
+        "plan_ready": updated_state.get("plan_ready", False),
+        "sharpening_turns": updated_state.get("sharpening_turns", 0),
+        "action_turns": updated_state.get("action_turns", 0),
+        "intent_category": updated_state.get("intent_category"),
+        "completed_tasks": updated_state.get("completed_tasks", []),
+        "language": language,
+    }
