@@ -154,47 +154,85 @@ async def root():
     }
 
 
-@app.get("/health")
-async def health_check():
+@app.get("/health/live")
+async def liveness():
+    """Liveness probe: is the process running? Used by Docker HEALTHCHECK."""
+    return {"status": "alive"}
+
+
+@app.get("/health/ready")
+async def readiness():
     """
-    Health check endpoint
-    
-    Checks:
-    - API status
-    - Database connection
-    - MCP Server connection
+    Readiness probe: are all dependencies available?
+    Returns 503 if any critical dependency is down.
+    Used by load balancers / Kubernetes readiness probes.
     """
     from app.core.database import get_async_engine
-    from app.core.orchestrator import mcp_client
+    from app.core.redis import is_redis_available
     from sqlalchemy import text
-    
-    health = {
-        "status": "healthy",
-        "checks": {}
-    }
-    
-    # Database check
+
+    checks = {}
+    is_ready = True
+
+    # Database
     try:
         engine = get_async_engine()
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-        health["checks"]["database"] = "connected"
+        checks["database"] = "ok"
     except Exception as e:
-        health["checks"]["database"] = f"error: {str(e)}"
-        health["status"] = "degraded"
-    
-    # MCP Server check
+        checks["database"] = f"error: {e}"
+        is_ready = False
+
+    # Redis (non-critical: degraded, not unready)
+    redis_ok = await is_redis_available()
+    checks["redis"] = "ok" if redis_ok else "unavailable (non-critical)"
+
+    status_code = 200 if is_ready else 503
+    body = {"status": "ready" if is_ready else "not_ready", "checks": checks}
+    return JSONResponse(status_code=status_code, content=body)
+
+
+@app.get("/health")
+async def health_check():
+    """
+    Full health status for monitoring dashboards.
+    Returns 503 when any critical dependency is degraded.
+    """
+    from app.core.database import get_async_engine
+    from app.core.orchestrator import mcp_client
+    from app.core.redis import is_redis_available
+    from sqlalchemy import text
+
+    checks = {}
+    overall = "healthy"
+
+    # Database
+    try:
+        engine = get_async_engine()
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        checks["database"] = "connected"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+        overall = "degraded"
+
+    # Redis
+    checks["redis"] = "connected" if await is_redis_available() else "unavailable"
+
+    # MCP Server
     try:
         tools = await mcp_client.list_tools()
-        health["checks"]["mcp_server"] = {
-            "status": "connected",
-            "tools_count": len(tools)
-        }
+        checks["mcp_server"] = {"status": "connected", "tools_count": len(tools)}
     except Exception as e:
-        health["checks"]["mcp_server"] = f"error: {str(e)}"
-        health["status"] = "degraded"
-    
-    return health
+        checks["mcp_server"] = f"error: {e}"
+        overall = "degraded"
+
+    status_code = 200 if overall == "healthy" else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={"status": overall, "checks": checks}
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════
