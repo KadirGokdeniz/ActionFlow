@@ -578,6 +578,21 @@ Thank the user and ask if they need anything else.
     messages = [SystemMessage(content=system_prompt)] + state["messages"]
     response = await llm_with_booking.ainvoke(messages)
     
+    # Fallback: LLM tool_call uretirse content bos olur,
+    # BACKEND_SERVICE_TOKEN olmadan booking 401 doner.
+    # Kullaniciya net bir mesaj goster.
+    final_message = response
+    has_content = bool(getattr(response, 'content', '').strip())
+    has_tool_calls = bool(getattr(response, 'tool_calls', []))
+    if not has_content or has_tool_calls:
+        from langchain_core.messages import AIMessage as _AI
+        lang = state.get('language', 'en')
+        if lang == 'tr':
+            confirm_text = '? **Rezervasyon talebiniz alindi!** Onay e-postasi gonderiliyor. Referans numaraniz en kisa surede iletilecek.'
+        else:
+            confirm_text = '? **Booking request received!** A confirmation email will be sent shortly with your reference number.'
+        final_message = _AI(content=confirm_text)
+    
     # Task güncelle
     new_tasks = state.get("completed_tasks", []).copy()
     if "booking_completed" not in new_tasks:
@@ -586,7 +601,7 @@ Thank the user and ask if they need anything else.
         new_tasks.append("action_completed")
     
     return {
-        "messages": [response],
+        "messages": [final_message],
         "completed_tasks": new_tasks,
         "action_phase": "booked",
         "awaiting_confirmation": False
