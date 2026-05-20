@@ -148,7 +148,7 @@ def _detect_user_confirmation(messages: list) -> bool:
             
             confirm_keywords = [
                 # English
-                "yes", "yeah", "yep", "sure", "ok", "okay", "confirm", "book it",
+                "yes", "yeah", "yep", "sure" if "not sure" not in content else None, "ok", "okay", "confirm", "book it",
                 "go ahead", "proceed", "do it", "please book", "make the booking",
                 "let's do it", "sounds good", "perfect", "great",
                 # Turkish
