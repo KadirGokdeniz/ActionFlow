@@ -1,5 +1,4 @@
-[![Tests](https://github.com/KadirGokdeniz/ActionFlow/actions/workflows/test.yml/badge.svg)](https://github.com/KadirGokdeniz/ActionFlow/actions/workflows/test.yml)
-![Tests](https://img.shields.io/badge/tests-121%20passing-brightgreen)
+
 
 # ActionFlow AI — Travel Customer Support Automation
 
@@ -12,6 +11,9 @@
 ![MCP](https://img.shields.io/badge/MCP-Tool%20Protocol-blueviolet)
 ![OpenAI Realtime](https://img.shields.io/badge/OpenAI-Realtime%20API-412991?logo=openai)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker)
+
+[![Tests](https://github.com/KadirGokdeniz/ActionFlow/actions/workflows/test.yml/badge.svg)](https://github.com/KadirGokdeniz/ActionFlow/actions/workflows/test.yml)
+![Tests](https://img.shields.io/badge/tests-121%20passing-brightgreen)
 
 ## Why It Matters
 
