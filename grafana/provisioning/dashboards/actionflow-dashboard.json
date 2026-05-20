@@ -125,7 +125,9 @@
       "options": {
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -246,7 +248,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -256,8 +260,8 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "sum(redis_connected_clients{job=\"redis\"})",
-          "legendFormat": "Active Conversations",
+          "expr": "sum(increase(http_requests_total{endpoint=\"/api/v1/chat/\",method=\"POST\"}[5m]))",
+          "legendFormat": "Active Chats (5m)",
           "refId": "A"
         }
       ],
@@ -297,7 +301,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -573,7 +579,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -586,11 +594,6 @@
           "expr": "up{job=\"backend\"}",
           "legendFormat": "Backend",
           "refId": "A"
-        },
-        {
-          "expr": "up{job=\"n8n\"}",
-          "legendFormat": "n8n",
-          "refId": "B"
         },
         {
           "expr": "up{job=\"postgres\"}",
@@ -609,7 +612,11 @@
   ],
   "schemaVersion": 27,
   "style": "dark",
-  "tags": ["actionflow", "backend", "monitoring"],
+  "tags": [
+    "actionflow",
+    "backend",
+    "monitoring"
+  ],
   "templating": {
     "list": []
   },
