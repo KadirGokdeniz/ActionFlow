@@ -3,3 +3,6 @@ __pycache__/
 .env
 test_results.json
 backend/.env
+
+docker_startup.log
+*.log
