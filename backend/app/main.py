@@ -13,6 +13,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import init_db, close_db
@@ -20,6 +21,7 @@ from app.core.orchestrator import shutdown as orchestrator_shutdown
 
 # Import routers
 from app.api.v1.auth_routes import router as auth_router
+from app.services.integration.amadeus.client import AmadeusServiceError
 from app.api.v1.chat_routes import router as chat_router
 from app.api.v1.flight_routes import router as flight_router
 from app.api.v1.accommodation_routes import router as hotel_router
@@ -103,6 +105,10 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan
 )
+
+@app.exception_handler(AmadeusServiceError)
+async def amadeus_error_handler(request, exc):
+    return JSONResponse(status_code=503, content={"detail": str(exc), "retry_after": 60})
 
 setup_metrics(app)
 # ═══════════════════════════════════════════════════════════════════
