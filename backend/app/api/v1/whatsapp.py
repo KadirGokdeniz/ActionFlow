@@ -164,6 +164,7 @@ async def handle_whatsapp_incoming(
         plan_ready = False
         sharpening_turns = 0
         action_turns = 0
+        action_phase = None
         
         if cached_state:
             travel_context = cached_state.get("travel_context")
@@ -171,6 +172,7 @@ async def handle_whatsapp_incoming(
             plan_ready = cached_state.get("plan_ready", False)
             sharpening_turns = cached_state.get("sharpening_turns", 0)
             action_turns = cached_state.get("action_turns", 0)
+            action_phase = cached_state.get("action_phase")
         elif not is_new:
             # Fallback DB
             travel_context = conversation.travel_context
@@ -199,6 +201,7 @@ async def handle_whatsapp_incoming(
             plan_ready=plan_ready,
             sharpening_turns=sharpening_turns,
             action_turns=action_turns,
+            action_phase=action_phase,
             channel="whatsapp"
         )
         
