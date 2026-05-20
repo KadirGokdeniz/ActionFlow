@@ -64,7 +64,7 @@ export async function sendMessage(request: SendMessageRequest): Promise<SendMess
   }
 
   try {
-    const response = await apiClient.post<SendMessageResponse>('/chat/', request);
+    const response = await apiClient.post<SendMessageResponse>('/chat', request);
     return response.data;
   } catch (error) {
     handleApiError(error);
