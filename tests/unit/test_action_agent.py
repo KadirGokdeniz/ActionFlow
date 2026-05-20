@@ -14,7 +14,8 @@ def test_determine_phase_present_after_search_initiated():
     from app.agents.action_agent import determine_phase, ActionPhase
     state = {
         "messages": [HumanMessage(content="find flights")],
-        "completed_tasks": ["search_initiated"]
+        "completed_tasks": ["search_initiated"],
+        "action_phase": "searching"
     }
     assert determine_phase(state) == ActionPhase.PRESENT
 
@@ -23,7 +24,8 @@ def test_determine_phase_complete_when_booking_done():
     from app.agents.action_agent import determine_phase, ActionPhase
     state = {
         "messages": [HumanMessage(content="ok")],
-        "completed_tasks": ["booking_completed"]
+        "completed_tasks": ["booking_completed"],
+        "action_phase": "booked"
     }
     assert determine_phase(state) == ActionPhase.COMPLETE
 

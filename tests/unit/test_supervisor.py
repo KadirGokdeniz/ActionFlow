@@ -167,16 +167,18 @@ async def test_sharpening_not_ready_stays_in_sharpening(mocker):
 # ?? ACTION routing ?????????????????????????????????????????????????????????????
 
 async def test_action_results_presented_routes_to_end(mocker):
-    """ACTION + results_presented in completed_tasks ? end."""
+    """ACTION + action_phase=presented + last msg is AIMessage ? end (wait for user)."""
     from app.agents.supervisor import supervisor_node
     from app.core.schemas import ConversationState
+    from langchain_core.messages import AIMessage
     no_escalation(mocker)
 
-    result = await supervisor_node(
-        make_state([HumanMessage(content="ok")],
-                   current_state=ConversationState.ACTION,
-                   completed_tasks=["results_presented"])
-    )
+    state = make_state([HumanMessage(content="search"), AIMessage(content="Here are flights")],
+                       current_state=ConversationState.ACTION,
+                       completed_tasks=[])
+    state["action_phase"] = "presented"
+
+    result = await supervisor_node(state)
     assert result["next_agent"] == "end"
 
 
