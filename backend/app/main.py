@@ -36,10 +36,8 @@ from app.core.metrics import setup_metrics
 # LOGGING
 # ═══════════════════════════════════════════════════════════════════
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+from app.core.logging_config import setup_logging
+setup_logging()
 logger = logging.getLogger("ActionFlow-Backend")
 
 
