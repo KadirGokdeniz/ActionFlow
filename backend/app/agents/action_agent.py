@@ -686,6 +686,27 @@ Thank the user and ask if they need anything else.
         lang = state.get('language', 'en')
         ref = _uuid.uuid4().hex[:8].upper()
         fd = _extract_flight_details_from_messages(state['messages'], 0)
+        # Trigger real n8n booking confirmation workflow
+        try:
+            from app.services.integration.booking_notifications import trigger_booking_confirmation
+            booking_data = {
+                'id': f'BK{ref}',
+                'pnr': ref,
+                'contact_email': (state.get('travel_context') or {}).get('contact_email', 'customer@actionflow.demo'),
+                'total_amount': float(fd.get('price', 0) or 0) if fd else 0,
+                'currency': fd.get('currency', 'EUR') if fd else 'EUR',
+                'details': {
+                    'airline': fd.get('airline', '') if fd else '',
+                    'flight_number': fd.get('flight_number', '') if fd else '',
+                    'route': f"{fd.get('origin','')} -> {fd.get('destination','')}" if fd else '',
+                    'departure': str(fd.get('departure', ''))[:16] if fd else '',
+                },
+                'passengers': [{'first_name': 'Demo', 'last_name': 'Traveler'}],
+            }
+            await trigger_booking_confirmation(booking_data, 'flight')
+            logger.info(f'[BOOK] n8n confirmation triggered for BK{ref}')
+        except Exception as _e:
+            logger.warning(f'[BOOK] n8n trigger failed: {_e}')
         if fd:
             airline = fd.get('airline', '')
             fn = fd.get('flight_number', '')
