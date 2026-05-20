@@ -107,7 +107,7 @@ Return JSON:
             HumanMessage(content=last_user_message)
         ]
         
-        response = await llm.ainvoke(messages_for_intent)
+        response = await llm.ainvoke(messages_for_intent, response_format={"type": "json_object"})
         
         try:
             result = json.loads(response.content.strip())
