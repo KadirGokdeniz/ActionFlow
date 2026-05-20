@@ -14,6 +14,8 @@ import uuid
 import logging
 
 from app.services.integration.n8n_service import n8n_service
+from app.core.auth import get_current_user
+from app.core.database import User
 from app.services.integration.booking_notifications import (
     trigger_booking_confirmation, trigger_cancellation_notification,
     trigger_modification_notification,

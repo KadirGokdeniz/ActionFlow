@@ -104,6 +104,7 @@ class User(Base):
     preferred_language = Column(String(10), default="en")
     tier = Column(String(20), default="standard")  # standard, premium, vip
     preferences = Column(JSON, default=dict)  # preferences, passport info, etc.
+    password_hash = Column(String(255), nullable=True)  # null for WhatsApp/OAuth users
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
