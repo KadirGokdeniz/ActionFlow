@@ -1,250 +1,256 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, PhoneOff, Volume2, Loader2 } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Volume2, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUI } from '@/contexts/UIContext';
-import { useConversation } from '@/contexts/ConversationContext';
 import { cn } from '@/lib/utils';
 
+const WS_BASE = import.meta.env.VITE_WS_URL?.replace('/chat/ws', '') || 'ws://localhost:8000/api/v1';
+const SAMPLE_RATE = 24000;
+const BUFFER_SIZE = 4096;
+
 export function VoiceCallView() {
-    const { t, toggleInteractionMode } = useUI();
-    const { sendMessage, isTyping, getActiveConversation } = useConversation();
+  const { t, toggleInteractionMode } = useUI();
+  const [status, setStatus] = useState<'connecting' | 'ready' | 'listening' | 'thinking' | 'speaking' | 'error'>('connecting');
+  const [userTranscript, setUserTranscript] = useState('');
+  const [aiTranscript, setAiTranscript] = useState('');
+  const [toolCall, setToolCall] = useState<string | null>(null);
 
-    const [isRecording, setIsRecording] = useState(false);
-    const [isTranscribing, setIsTranscribing] = useState(false);
-    const [isSynthesizing, setIsSynthesizing] = useState(false);
-    const [statusText, setStatusText] = useState('');
+  const wsRef = useRef<WebSocket | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioQueueRef = useRef<Float32Array[]>([]);
+  const isPlayingRef = useRef(false);
 
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const audioChunksRef = useRef<Blob[]>([]);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
-    const silenceTimerRef = useRef<any>(null);
-    const lastProcessedMessageId = useRef<string | null>(null);
+  // PCM16 -> Float32
+  const pcm16ToFloat32 = (buffer: ArrayBuffer): Float32Array => {
+    const int16 = new Int16Array(buffer);
+    const float32 = new Float32Array(int16.length);
+    for (let i = 0; i < int16.length; i++) {
+      float32[i] = int16[i] / 32768.0;
+    }
+    return float32;
+  };
 
-    // Refs to track state and avoid stale closures in callbacks
-    const isRecordingRef = useRef(false);
-    const isTranscribingRef = useRef(false);
-    const isSynthesizingRef = useRef(false);
+  // Float32 -> PCM16 base64
+  const float32ToPcm16Base64 = (float32: Float32Array): string => {
+    const int16 = new Int16Array(float32.length);
+    for (let i = 0; i < float32.length; i++) {
+      const s = Math.max(-1, Math.min(1, float32[i]));
+      int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    const bytes = new Uint8Array(int16.buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  };
 
-    const activeConversation = getActiveConversation();
-    const messages = activeConversation?.messages || [];
-    const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  // Play audio queue
+  const playNextChunk = useCallback(async () => {
+    if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
+    isPlayingRef.current = true;
 
-    // 1. Initial State: Start listening automatically
-    useEffect(() => {
-        setStatusText(t('Bağlanıyor...', 'Connecting...'));
-        const timer = setTimeout(() => {
-            startListening();
-        }, 1000);
-        return () => {
-            clearTimeout(timer);
-            stopListening();
-        };
-    }, []);
+    const ctx = audioCtxRef.current!;
+    const chunk = audioQueueRef.current.shift()!;
+    const buffer = ctx.createBuffer(1, chunk.length, SAMPLE_RATE);
+    buffer.copyToChannel(chunk, 0);
 
-    // 2. Monitor AI Response for TTS
-    useEffect(() => {
-        if (latestMessage &&
-            latestMessage.role === 'assistant' &&
-            latestMessage.id !== lastProcessedMessageId.current) {
-            lastProcessedMessageId.current = latestMessage.id;
-            playAssistantResponse(latestMessage.content);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.onended = () => {
+      isPlayingRef.current = false;
+      if (audioQueueRef.current.length > 0) playNextChunk();
+      else setStatus('listening');
+    };
+    source.start();
+    setStatus('speaking');
+  }, []);
+
+  // Connect WebSocket
+  useEffect(() => {
+    const customerId = `user_${Date.now()}`;
+    const ws = new WebSocket(`${WS_BASE}/voice/realtime?customer_id=${customerId}`);
+    wsRef.current = ws;
+
+    ws.onmessage = async (event) => {
+      const data = JSON.parse(event.data);
+
+      switch (data.type) {
+        case 'ready':
+          setStatus('ready');
+          startMicrophone();
+          break;
+
+        case 'speech_started':
+          setStatus('listening');
+          setAiTranscript('');
+          setToolCall(null);
+          // Stop current playback
+          audioQueueRef.current = [];
+          isPlayingRef.current = false;
+          break;
+
+        case 'speech_stopped':
+          setStatus('thinking');
+          break;
+
+        case 'user_transcript':
+          setUserTranscript(data.text);
+          break;
+
+        case 'audio': {
+          if (!audioCtxRef.current) break;
+          const raw = atob(data.audio);
+          const bytes = new Uint8Array(raw.length);
+          for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+          const float32 = pcm16ToFloat32(bytes.buffer);
+          audioQueueRef.current.push(float32);
+          playNextChunk();
+          break;
         }
-    }, [latestMessage]);
 
-    const startListening = async () => {
-        if (isRecordingRef.current || isTranscribingRef.current || isSynthesizingRef.current) return;
+        case 'ai_transcript':
+          setAiTranscript(prev => prev + data.text);
+          break;
 
-        try {
-            setStatusText(t('Dinleniyor...', 'Listening...'));
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        case 'tool_call':
+          setToolCall(data.name);
+          break;
 
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const analyser = audioContext.createAnalyser();
-            const source = audioContext.createMediaStreamSource(stream);
-            source.connect(analyser);
-            analyser.fftSize = 256;
-
-            audioContextRef.current = audioContext;
-            analyserRef.current = analyser;
-
-            const mediaRecorder = new MediaRecorder(stream);
-            mediaRecorderRef.current = mediaRecorder;
-            audioChunksRef.current = [];
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) audioChunksRef.current.push(event.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-                stream.getTracks().forEach(track => track.stop());
-                audioContext.close();
-                handleTranscription(audioBlob);
-            };
-
-            mediaRecorder.start();
-            setIsRecording(true);
-            isRecordingRef.current = true;
-            monitorSilence();
-        } catch (error) {
-            console.error('Mic error:', error);
-            setStatusText(t('Mikrofon hatası', 'Mic error'));
-        }
+        case 'error':
+          setStatus('error');
+          console.error('Realtime error:', data.message);
+          break;
+      }
     };
 
-    const monitorSilence = () => {
-        if (!analyserRef.current) return;
-        const bufferLength = analyserRef.current.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
+    ws.onerror = () => setStatus('error');
+    ws.onclose = () => console.log('WebSocket closed');
 
-        const checkVolume = () => {
-            if (!analyserRef.current) return;
-            analyserRef.current.getByteFrequencyData(dataArray);
-            const average = dataArray.reduce((p, c) => p + c, 0) / bufferLength;
+    audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+      sampleRate: SAMPLE_RATE
+    });
 
-            if (average < 10) {
-                if (!silenceTimerRef.current) {
-                    silenceTimerRef.current = setTimeout(() => {
-                        if (mediaRecorderRef.current?.state === 'recording') {
-                            mediaRecorderRef.current.stop();
-                            setIsRecording(false);
-                            isRecordingRef.current = false;
-                        }
-                    }, 2000);
-                }
-            } else {
-                if (silenceTimerRef.current) {
-                    clearTimeout(silenceTimerRef.current);
-                    silenceTimerRef.current = null;
-                }
-            }
-            if (mediaRecorderRef.current?.state === 'recording') requestAnimationFrame(checkVolume);
-        };
-        requestAnimationFrame(checkVolume);
+    return () => {
+      ws.close();
+      stopMicrophone();
+      audioCtxRef.current?.close();
     };
+  }, []);
 
-    const handleTranscription = async (blob: Blob) => {
-        setIsTranscribing(true);
-        isTranscribingRef.current = true;
-        setStatusText(t('Düşünülüyor...', 'Thinking...'));
-        try {
-            const formData = new FormData();
-            formData.append('file', blob, 'call.wav');
-            const response = await fetch('/api/v1/voice/stt', { method: 'POST', body: formData });
-            const data = await response.json();
-            if (data.text) {
-                await sendMessage(data.text);
-            } else {
-                // No speech detected, resume listening
-                setIsTranscribing(false);
-                isTranscribingRef.current = false;
-                startListening();
-            }
-        } catch (error) {
-            console.error('STT error:', error);
-            setIsTranscribing(false);
-            isTranscribingRef.current = false;
-            startListening();
-        }
-    };
+  const startMicrophone = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-    const playAssistantResponse = async (text: string) => {
-        setIsSynthesizing(true);
-        isSynthesizingRef.current = true;
-        setStatusText(t('Asistan konuşuyor...', 'Assistant speaking...'));
-        try {
-            const response = await fetch('/api/v1/voice/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
-            });
-            const blob = await response.blob();
-            const audio = new Audio(URL.createObjectURL(blob));
-            audio.onended = () => {
-                setIsSynthesizing(false);
-                isSynthesizingRef.current = false;
-                setIsTranscribing(false); // Ensure typing indicator reset
-                isTranscribingRef.current = false;
-                startListening(); // Back to listening loop
-            };
-            audio.play();
-        } catch (error) {
-            console.error('TTS error:', error);
-            setIsSynthesizing(false);
-            isSynthesizingRef.current = false;
-            startListening();
-        }
-    };
+      const ctx = audioCtxRef.current!;
+      const source = ctx.createMediaStreamSource(stream);
+      const processor = ctx.createScriptProcessor(BUFFER_SIZE, 1, 1);
+      processorRef.current = processor;
 
-    const stopListening = () => {
-        if (mediaRecorderRef.current?.state === 'recording') {
-            mediaRecorderRef.current.stop();
-        }
-        setIsRecording(false);
-        isRecordingRef.current = false;
-    };
+      processor.onaudioprocess = (e) => {
+        if (wsRef.current?.readyState !== WebSocket.OPEN) return;
+        const float32 = e.inputBuffer.getChannelData(0);
+        // Resample to 24kHz if needed
+        const base64 = float32ToPcm16Base64(float32);
+        wsRef.current.send(JSON.stringify({ type: 'audio', audio: base64 }));
+      };
 
-    return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl">
-            {/* Wave Animation */}
-            <div className="relative flex items-center justify-center w-64 h-64 mb-12">
-                <AnimatePresence>
-                    {isRecording && (
-                        <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1.5, opacity: 0.1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ repeat: Infinity, duration: 2, ease: "easeOut" }}
-                            className="absolute inset-0 bg-primary rounded-full"
-                        />
-                    )}
-                </AnimatePresence>
+      source.connect(processor);
+      processor.connect(ctx.destination);
+    } catch (err) {
+      console.error('Mic error:', err);
+      setStatus('error');
+    }
+  };
 
-                <div className={cn(
-                    "relative z-10 flex items-center justify-center w-32 h-32 rounded-full transition-all duration-500 shadow-2xl",
-                    isRecording ? "bg-primary glow-primary" : "bg-muted"
-                )}>
-                    {isTranscribing || isTyping ? (
-                        <Loader2 className="w-12 h-12 text-white animate-spin" />
-                    ) : isSynthesizing ? (
-                        <Volume2 className="w-12 h-12 text-white animate-pulse" />
-                    ) : (
-                        <Mic className={cn("w-12 h-12", isRecording ? "text-white" : "text-muted-foreground")} />
-                    )}
-                </div>
-            </div>
+  const stopMicrophone = () => {
+    processorRef.current?.disconnect();
+    streamRef.current?.getTracks().forEach(t => t.stop());
+  };
 
-            {/* Transcription Preview (Latest AI Response) */}
-            <div className="max-w-md px-6 text-center mb-12">
-                <h3 className="text-xl font-medium mb-2">{statusText}</h3>
-                <p className="text-muted-foreground animate-fade-in line-clamp-3 italic">
-                    {latestMessage?.role === 'assistant' ? latestMessage.content : '...'}
-                </p>
-            </div>
+  const statusLabel: Record<typeof status, string> = {
+    connecting: t('Baglaniyor...', 'Connecting...'),
+    ready: t('Hazir', 'Ready'),
+    listening: t('Dinleniyor...', 'Listening...'),
+    thinking: t('Dusunuyor...', 'Thinking...'),
+    speaking: t('Konusuyor...', 'Speaking...'),
+    error: t('Hata olustu', 'Error occurred'),
+  };
 
-            {/* Controls */}
-            <div className="flex items-center gap-6">
-                <Button
-                    size="lg"
-                    variant="destructive"
-                    className="h-16 w-16 rounded-full shadow-lg"
-                    onClick={toggleInteractionMode}
-                >
-                    <PhoneOff className="h-6 w-6" />
-                </Button>
+  const isListening = status === 'listening' || status === 'ready';
 
-                <Button
-                    size="lg"
-                    variant="outline"
-                    className="h-16 w-16 rounded-full"
-                    onClick={isRecording ? stopListening : startListening}
-                    disabled={isTranscribing || isSynthesizing || isTyping}
-                >
-                    {isRecording ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-                </Button>
-            </div>
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl">
+      {/* Latency badge */}
+      <div className="absolute top-6 right-6 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 text-success text-xs font-medium">
+        <Zap className="w-3 h-3" />
+        Realtime API ~500ms
+      </div>
+
+      {/* Wave animation */}
+      <div className="relative flex items-center justify-center w-48 h-48 mb-8">
+        <AnimatePresence>
+          {isListening && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1.6, opacity: 0.1 }}
+              exit={{ opacity: 0 }}
+              transition={{ repeat: Infinity, duration: 1.8, ease: 'easeOut' }}
+              className="absolute inset-0 bg-primary rounded-full"
+            />
+          )}
+        </AnimatePresence>
+
+        <div className={cn(
+          "relative z-10 w-28 h-28 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500",
+          isListening ? "bg-primary glow-primary" :
+          status === 'speaking' ? "bg-accent glow-accent" :
+          status === 'thinking' ? "bg-warning/80" : "bg-muted"
+        )}>
+          {status === 'thinking' ? (
+            <Loader2 className="w-10 h-10 text-white animate-spin" />
+          ) : status === 'speaking' ? (
+            <Volume2 className="w-10 h-10 text-white animate-pulse" />
+          ) : (
+            <Mic className={cn("w-10 h-10", isListening ? "text-white" : "text-muted-foreground")} />
+          )}
         </div>
-    );
+      </div>
+
+      {/* Status */}
+      <h3 className="text-xl font-medium mb-2">{statusLabel[status]}</h3>
+
+      {/* Tool call indicator */}
+      {toolCall && (
+        <div className="mb-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs">
+          {toolCall.replace(/_/g, ' ')}...
+        </div>
+      )}
+
+      {/* Transcripts */}
+      <div className="max-w-sm w-full px-6 space-y-2 mb-10 text-center min-h-[80px]">
+        {userTranscript && (
+          <p className="text-sm text-muted-foreground italic">"{userTranscript}"</p>
+        )}
+        {aiTranscript && (
+          <p className="text-sm font-medium">{aiTranscript}</p>
+        )}
+      </div>
+
+      {/* Controls */}
+      <Button
+        size="lg"
+        variant="destructive"
+        className="h-16 w-16 rounded-full shadow-lg"
+        onClick={toggleInteractionMode}
+      >
+        <PhoneOff className="h-6 w-6" />
+      </Button>
+    </div>
+  );
 }
