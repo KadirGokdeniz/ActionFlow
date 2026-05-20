@@ -150,36 +150,26 @@ async def search(
 # HOTEL POLICIES
 # --------------------------------------------------
 @router.get("/{hotel_id}/policies")
-def booking_hotel_policies(hotel_id: str):
-    """
-    Otel politikaları (iptal, check-in vb.)
-    """
-    # TODO: Gerçek API entegrasyonu
-    return {
-        "hotel_id": hotel_id,
-        "policies": [
-            "Free cancellation available",
-            "No smoking rooms",
-            "Pets allowed on request"
-        ],
-        "source": "mock"
-    }
+async def booking_hotel_policies(hotel_id: str):
+    """Hotel cancellation/check-in policies. Not yet implemented."""
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error": "not_implemented",
+            "message": "Hotel policies endpoint is not yet implemented.",
+            "hotel_id": hotel_id,
+        }
+    )
 
-
-# --------------------------------------------------
-# HOTEL DESCRIPTION
-# --------------------------------------------------
 @router.get("/{hotel_id}/description")
-def booking_hotel_description(hotel_id: str):
-    """
-    Otel açıklaması ve detayları
-    """
-    # TODO: Gerçek API entegrasyonu
-    return {
-        "hotel_id": hotel_id,
-        "description": (
-            "This hotel offers comfortable rooms, free WiFi, "
-            "24-hour reception and a central location."
-        ),
-        "source": "mock"
-    }
+async def booking_hotel_description(hotel_id: str):
+    """Hotel description and amenities. Not yet implemented."""
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error": "not_implemented",
+            "message": "Hotel description endpoint is not yet implemented.",
+            "hotel_id": hotel_id,
+        }
+    )
+
