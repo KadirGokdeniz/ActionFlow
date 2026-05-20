@@ -146,7 +146,7 @@ services:
       - ./scripts/database_setup.py:/app/database_setup.py
       - ./backend:/app
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health/live" ]
       interval: 10s
       timeout: 5s
       retries: 5
