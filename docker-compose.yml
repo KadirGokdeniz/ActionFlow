@@ -162,6 +162,7 @@ services:
       # Backend API bağlantısı (tool'lar buraya istek atar)
       BACKEND_URL: http://backend:8000
       MCP_PORT: 3000
+      BACKEND_SERVICE_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtY3Bfc2VydmljZSIsImV4cCI6MjA5NDYzNDM0OX0.fCeuugxSqdmY_EAMf6oNiCGHzzslHfKWrl8HARNN3d8
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       db:
