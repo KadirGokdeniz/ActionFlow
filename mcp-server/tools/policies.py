@@ -70,8 +70,9 @@ async def search_policies(
             params["provider"] = provider
         
         # Backend'e RAG sorgusu gönder
+        params["q"] = query
         response = await http_client.get(
-            f"/api/v1/policies/search/{query}",
+            "/api/v1/policies/search",
             params=params
         )
         response.raise_for_status()

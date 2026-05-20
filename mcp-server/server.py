@@ -34,6 +34,7 @@ load_dotenv()
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 MCP_PORT = int(os.getenv("MCP_PORT", "3000"))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+BACKEND_SERVICE_TOKEN = os.getenv("BACKEND_SERVICE_TOKEN", "")
 
 # Logging setup
 logging.basicConfig(
@@ -56,11 +57,19 @@ async def lifespan(app: FastAPI):
     global http_client
     
     # Startup
+    headers = {}
+    if BACKEND_SERVICE_TOKEN:
+        headers["Authorization"] = f"Bearer {BACKEND_SERVICE_TOKEN}"
     http_client = httpx.AsyncClient(
         base_url=BACKEND_URL,
         timeout=30.0,
-        limits=httpx.Limits(max_connections=20, max_keepalive_connections=5)
+        limits=httpx.Limits(max_connections=20, max_keepalive_connections=5),
+        headers=headers
     )
+    if BACKEND_SERVICE_TOKEN:
+        logger.info("Service token configured for backend auth")
+    else:
+        logger.warning("BACKEND_SERVICE_TOKEN not set ? booking endpoints will return 401")
     logger.info(f"✅ MCP Server started. Backend: {BACKEND_URL}")
     logger.info(f"📦 Loaded {len(TOOLS)} tools: {[t['name'] for t in TOOLS]}")
     
@@ -113,7 +122,7 @@ async def health():
     try:
         import time
         start = time.time()
-        response = await http_client.get("/health")
+        response = await http_client.get("/health/live")
         backend_latency = round((time.time() - start) * 1000, 2)
         backend_status = "connected" if response.status_code == 200 else "error"
     except Exception as e:
