@@ -80,6 +80,30 @@ class RAGService:
             logger.error(f"❌ Failed to initialize RAG Service: {e}")
             return False
     
+
+    def sync_policy(self, policy_id: str, title: str, content: str,
+                    provider: str = None, category: str = None) -> bool:
+        """Index a single policy into Pinecone. Call after DB write."""
+        if not self._initialized:
+            return False
+        text = f"{title}. {content}"
+        metadata = {"policy_id": policy_id, "title": title}
+        if provider:
+            metadata["provider"] = provider
+        if category:
+            metadata["category"] = category
+        return self.index_documents([text], [metadata])
+
+    def delete_policy(self, policy_id: str) -> None:
+        """Remove policy from Pinecone using metadata filter."""
+        if not self._initialized or not self.index:
+            return
+        try:
+            self.index.delete(filter={"policy_id": {"$eq": policy_id}})
+            logger.info(f"Deleted policy {policy_id} from Pinecone")
+        except Exception as e:
+            logger.warning(f"Could not delete {policy_id} from Pinecone: {e}")
+
     def index_documents(self, documents: List[str], metadatas: List[Dict] = None):
         """
         Index documents into Pinecone
