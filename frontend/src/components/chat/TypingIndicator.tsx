@@ -1,11 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useUI } from '@/contexts/UIContext';
 
 interface TypingIndicatorProps {
   className?: string;
 }
 
 export function TypingIndicator({ className = '' }: TypingIndicatorProps) {
+  const { t } = useUI();
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <div className="flex items-center gap-1.5 px-4 py-3 rounded-2xl chat-ai-gradient">
@@ -25,7 +27,7 @@ export function TypingIndicator({ className = '' }: TypingIndicatorProps) {
           transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }}
         />
       </div>
-      <span className="text-sm text-muted-foreground">ActionFlow düşünüyor...</span>
+      <span className="text-sm text-muted-foreground">{t("ActionFlow düşünüyor...", "ActionFlow is thinking...")}</span>
     </div>
   );
 }
