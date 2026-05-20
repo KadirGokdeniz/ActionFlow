@@ -10,7 +10,6 @@ Değişiklikler (v2):
 """
 
 import logging
-import re
 import json
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.schemas import AgentState, ConversationState
@@ -184,13 +183,7 @@ Return JSON:
         # CRITICAL FIX: Check if results were presented
         # ═══════════════════════════════════════════════════════════
         if "results_presented" in completed_tasks:
-            from langchain_core.messages import HumanMessage as _HM
-            _last_user = next((m for m in reversed(messages) if isinstance(m, _HM)), None)
-            _selected = (_last_user and "selection_presented" not in completed_tasks and bool(re.search(r"\b([1-5])\b|first|second|third|ilk|birinci|ikinci", _last_user.content.lower())))
-            if _selected:
-                logger.info("User made selection, routing to ACTION for confirm")
-                _tasks = [t for t in completed_tasks if t != "results_presented"]
-                return {"next_agent": "action", "current_state": ConversationState.ACTION, "completed_tasks": _tasks}
+            # Results shown to user, wait for their input
             logger.info("📋 [SUPERVISOR] Results presented, waiting for user selection")
             return {
                 "next_agent": "end",
