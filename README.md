@@ -81,7 +81,7 @@ This solves a fundamental LangGraph challenge: `completed_tasks` uses an `add` r
 |------------|---------------------------|
 | **LangGraph** | Graph-based state machine handles conditional routing and conversation cycles that simple chains can't |
 | **MCP** | LLM-agnostic tool protocol — switch providers without rewriting integrations |
-| **Amadeus API** | Direct GDS access for real flight search and booking (sandbox + production) |
+| **Amadeus API** | (sandbox + production) |
 | **n8n** | Self-hosted, no per-execution cost (vs Zapier). Visual debugging for complex booking flows |
 | **Pinecone** | Production-ready semantic search with zero infra management |
 | **Redis** | Sub-ms latency for session state. `action_phase` field persisted across turns |
